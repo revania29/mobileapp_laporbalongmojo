@@ -1,0 +1,39 @@
+services:
+  # Service Database
+  db:
+    image: mysql:8.0
+    container_name: lapor_balongmojo_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: 'password'
+      MYSQL_DATABASE: 'lapor_balongmojo'
+    ports:
+      - '3307:3306'
+    volumes:
+      - db_data:/var/lib/mysql
+
+  # Service API (Backend)
+  api:
+    container_name: lapor_balongmojo_api
+    build: .
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    depends_on:
+      - db
+    environment:
+      DB_HOST: 'db'
+      DB_USER: 'root'
+      DB_PASSWORD: 'password'
+      DB_DATABASE: 'lapor_balongmojo'
+      JWT_SECRET: 'password' 
+
+    command: npm run dev 
+    
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+      - ./public/uploads:/usr/src/app/public/uploads
+
+volumes:
+  db_data:
