@@ -7,6 +7,7 @@ import 'package:lapor_balongmojo/screens/auth/register_masyarakat_screen.dart';
 import 'package:lapor_balongmojo/screens/masyarakat/home_screen_masyarakat.dart';
 import 'package:lapor_balongmojo/screens/masyarakat/form_laporan_screen.dart';
 import 'package:lapor_balongmojo/screens/masyarakat/riwayat_laporan_screen.dart';
+import 'package:lapor_balongmojo/screens/splash_screen.dart'; 
 
 void main() {
   runApp(const MyApp());
@@ -37,9 +38,11 @@ class MyApp extends StatelessWidget {
           ),
         ),
         
-        initialRoute: LoginScreen.routeName, 
+        initialRoute: SplashScreen.routeName, 
         
         routes: {
+          SplashScreen.routeName: (ctx) => const SplashScreen(),
+          
           LoginScreen.routeName: (ctx) => const LoginScreen(),
           RegisterMasyarakatScreen.routeName: (ctx) => const RegisterMasyarakatScreen(),
           HomeScreenMasyarakat.routeName: (ctx) => const HomeScreenMasyarakat(),

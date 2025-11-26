@@ -16,8 +16,29 @@ class AuthProvider with ChangeNotifier {
 
   AuthStatus get status => _status;
   UserModel? get user => _user;
+  bool get isLoggedIn => _status == AuthStatus.authenticated;
 
-  // --- PROSES LOGIN ---
+  Future<bool> tryAutoLogin() async {
+    final token = await _storageService.readToken();
+    if (token == null) {
+      _status = AuthStatus.unauthenticated;
+      notifyListeners();
+      return false;
+    }
+
+    _token = token;
+
+    final prefs = await SharedPreferences.getInstance();
+    final role = prefs.getString('userRole') ?? 'masyarakat';
+    final nama = prefs.getString('userName') ?? 'User';
+    
+    _user = UserModel(id: 0, nama: nama, email: '', role: role);
+
+    _status = AuthStatus.authenticated;
+    notifyListeners();
+    return true;
+  }
+
   Future<void> login(String email, String password) async {
     try {
       final responseData = await _apiService.login(email, password);
@@ -31,7 +52,6 @@ class AuthProvider with ChangeNotifier {
       await prefs.setString('userRole', _user!.role);
       await prefs.setString('userName', _user!.nama);
 
-      // 4. Update State Aplikasi
       _status = AuthStatus.authenticated;
       notifyListeners();
     } catch (e) {
@@ -41,12 +61,10 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // --- PROSES REGISTER ---
   Future<void> register(String nama, String email, String noTelp, String password) async {
     await _apiService.registerMasyarakat(nama, email, noTelp, password);
   }
 
-  // --- PROSES LOGOUT ---
   Future<void> logout() async {
     _token = null;
     _user = null;

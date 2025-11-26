@@ -19,10 +19,35 @@ class HomeScreenMasyarakat extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.exit_to_app),
-            onPressed: () async {
-              await Provider.of<AuthProvider>(context, listen: false).logout();
-              if (!context.mounted) return;
-              Navigator.of(context).pushReplacementNamed(LoginScreen.routeName);
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Konfirmasi Logout'),
+                  content: const Text('Apakah Anda yakin ingin keluar aplikasi?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(), 
+                      child: const Text('Batal'),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        Navigator.of(ctx).pop(); 
+                        
+                        await Provider.of<AuthProvider>(context, listen: false).logout();
+                        
+                        if (!context.mounted) return;
+                        
+                        Navigator.of(context).pushNamedAndRemoveUntil(
+                          LoginScreen.routeName, 
+                          (route) => false
+                        );
+                      },
+                      child: const Text('Ya, Keluar'),
+                    ),
+                  ],
+                ),
+              );
             },
           ),
         ],
@@ -42,7 +67,6 @@ class HomeScreenMasyarakat extends StatelessWidget {
             
             const SizedBox(height: 40),
             
-            // Tombol Menu
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -58,6 +82,8 @@ class HomeScreenMasyarakat extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
+            
+            // Tombol Lihat Riwayat
             SizedBox(
               width: double.infinity,
               height: 50,
