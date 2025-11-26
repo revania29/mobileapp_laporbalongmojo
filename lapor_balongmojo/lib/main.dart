@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:lapor_balongmojo/providers/auth_provider.dart';
+import 'package:lapor_balongmojo/providers/laporan_provider.dart';
 import 'package:lapor_balongmojo/screens/auth/login_screen.dart';
 import 'package:lapor_balongmojo/screens/auth/register_masyarakat_screen.dart';
 import 'package:lapor_balongmojo/screens/masyarakat/home_screen_masyarakat.dart';
 import 'package:lapor_balongmojo/screens/masyarakat/form_laporan_screen.dart';
+import 'package:lapor_balongmojo/screens/masyarakat/riwayat_laporan_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -18,6 +20,7 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => LaporanProvider()),
       ],
       child: MaterialApp(
         title: 'Lapor Balongmojo',
@@ -41,6 +44,7 @@ class MyApp extends StatelessWidget {
           RegisterMasyarakatScreen.routeName: (ctx) => const RegisterMasyarakatScreen(),
           HomeScreenMasyarakat.routeName: (ctx) => const HomeScreenMasyarakat(),
           FormLaporanScreen.routeName: (ctx) => const FormLaporanScreen(),
+          RiwayatLaporanScreen.routeName: (ctx) => const RiwayatLaporanScreen(),
         },
       ),
     );
