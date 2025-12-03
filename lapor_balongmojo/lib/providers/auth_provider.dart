@@ -18,6 +18,8 @@ class AuthProvider with ChangeNotifier {
   UserModel? get user => _user;
   bool get isLoggedIn => _status == AuthStatus.authenticated;
 
+  bool get isAdmin => _user?.role == 'perangkat';
+
   Future<bool> tryAutoLogin() async {
     final token = await _storageService.readToken();
     if (token == null) {
@@ -31,8 +33,9 @@ class AuthProvider with ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final role = prefs.getString('userRole') ?? 'masyarakat';
     final nama = prefs.getString('userName') ?? 'User';
+    final id = prefs.getInt('userId') ?? 0;
     
-    _user = UserModel(id: 0, nama: nama, email: '', role: role);
+    _user = UserModel(id: id, nama: nama, email: '', role: role);
 
     _status = AuthStatus.authenticated;
     notifyListeners();
@@ -49,8 +52,9 @@ class AuthProvider with ChangeNotifier {
       await _storageService.writeToken(_token!);
       
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('userRole', _user!.role);
+      await prefs.setString('userRole', _user!.role); // Role disimpan disini
       await prefs.setString('userName', _user!.nama);
+      await prefs.setInt('userId', _user!.id);
 
       _status = AuthStatus.authenticated;
       notifyListeners();
