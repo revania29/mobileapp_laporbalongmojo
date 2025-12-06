@@ -17,6 +17,7 @@ class ApiService {
     final token = await _storageService.readToken();
     return {
       'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
     };
   }
 
@@ -79,7 +80,8 @@ class ApiService {
 
   Future<List<LaporanModel>> getLaporan() async {
     final uri = Uri.parse('$_baseUrl/laporan');
-    final headers = await _getAuthHeaders(); 
+    final token = await _storageService.readToken();
+    final headers = {'Authorization': 'Bearer $token'};
 
     final response = await http.get(uri, headers: headers);
 
@@ -96,7 +98,8 @@ class ApiService {
 
   Future<List<LaporanModel>> getAllLaporanAdmin() async {
     final uri = Uri.parse('$_baseUrl/laporan/admin/all');
-    final headers = await _getAuthHeaders();
+    final token = await _storageService.readToken();
+    final headers = {'Authorization': 'Bearer $token'};
 
     final response = await http.get(uri, headers: headers);
 
@@ -108,6 +111,21 @@ class ApiService {
       return laporanList;
     } else {
       throw Exception('Gagal mengambil data laporan admin');
+    }
+  }
+
+  Future<void> updateStatusLaporan(int id, String status) async {
+    final uri = Uri.parse('$_baseUrl/laporan/$id');
+    final headers = await _getAuthHeaders(); 
+
+    final response = await http.put(
+      uri,
+      headers: headers,
+      body: jsonEncode({'status': status}),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(jsonDecode(response.body)['message']);
     }
   }
 }
