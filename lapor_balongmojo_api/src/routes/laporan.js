@@ -3,9 +3,8 @@ const router = express.Router();
 const db = require('../config/database');
 const multer = require('multer');
 const path = require('path');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken, isPerangkat } = require('../middleware/auth'); 
 
-// --- KONFIGURASI MULTER (UPLOAD) ---
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, 'public/uploads');
@@ -17,7 +16,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
     storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 },
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
     fileFilter: (req, file, cb) => {
         const filetypes = /jpeg|jpg|png/;
         const mimetype = filetypes.test(file.mimetype);
@@ -29,12 +28,15 @@ const upload = multer({
     }
 });
 
-// --- 1. POST LAPORAN (BUAT LAPORAN BARU) ---
-// Endpoint: POST /laporan
+// ==========================================
+//  ENDPOINT UNTUK WARGA
+// ==========================================
+
+// 1. POST LAPORAN (BUAT LAPORAN BARU)
 router.post('/', verifyToken, upload.single('image'), async (req, res) => {
     try {
         const { judul, deskripsi } = req.body;
-        const userId = req.user.id;
+        const userId = req.user.id; 
         
         const fotoUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
@@ -55,8 +57,6 @@ router.post('/', verifyToken, upload.single('image'), async (req, res) => {
     }
 });
 
-// --- 2. GET LAPORAN (LIHAT RIWAYAT SAYA) ---
-// Endpoint: GET /laporan
 router.get('/', verifyToken, async (req, res) => {
     try {
         const userId = req.user.id;
@@ -70,6 +70,52 @@ router.get('/', verifyToken, async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Gagal mengambil data laporan' });
+    }
+});
+
+router.get('/admin/all', [verifyToken, isPerangkat], async (req, res) => {
+    try {
+        const query = `
+            SELECT l.*, u.nama_lengkap as pelapor, u.no_telepon 
+            FROM laporan l 
+            JOIN users u ON l.user_id = u.id 
+            ORDER BY l.created_at DESC
+        `;
+        
+        const [rows] = await db.query(query);
+        res.json(rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Gagal memuat semua laporan.' });
+    }
+});
+
+
+router.put('/:id', [verifyToken, isPerangkat], async (req, res) => {
+    try {
+        const laporanId = req.params.id;
+        const { status } = req.body; 
+
+        const validStatuses = ['menunggu', 'proses', 'selesai', 'ditolak'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ message: 'Status tidak valid!' });
+        }
+
+        // Eksekusi Update
+        const [result] = await db.query(
+            'UPDATE laporan SET status = ? WHERE id = ?',
+            [status, laporanId]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Laporan tidak ditemukan.' });
+        }
+
+        res.json({ message: `Status berhasil diubah menjadi ${status}` });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Gagal update status laporan.' });
     }
 });
 

@@ -7,7 +7,6 @@ import 'package:http_parser/http_parser.dart';
 import 'package:path/path.dart';
 
 class ApiService {
-  // 10.0.2.2 adalah localhost untuk Android Emulator
   static const String _baseUrl = 'http://10.0.2.2:3000';
   
   static const String publicBaseUrl = _baseUrl; 
@@ -18,10 +17,10 @@ class ApiService {
     final token = await _storageService.readToken();
     return {
       'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
     };
   }
 
-  // --- AUTH ---
   Future<Map<String, dynamic>> login(String email, String password) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/auth/login'),
@@ -55,9 +54,6 @@ class ApiService {
     }
   }
 
-  // --- FITUR LAPORAN ---
-
-  // 1. POST LAPORAN
   Future<void> postLaporan(String judul, String deskripsi, File imageFile) async {
     final uri = Uri.parse('$_baseUrl/laporan');
     final token = await _storageService.readToken();
@@ -82,10 +78,10 @@ class ApiService {
     }
   }
 
-  // 2. GET RIWAYAT LAPORAN
   Future<List<LaporanModel>> getLaporan() async {
     final uri = Uri.parse('$_baseUrl/laporan');
-    final headers = await _getAuthHeaders(); 
+    final token = await _storageService.readToken();
+    final headers = {'Authorization': 'Bearer $token'};
 
     final response = await http.get(uri, headers: headers);
 
@@ -97,6 +93,39 @@ class ApiService {
       return laporanList;
     } else {
       throw Exception('Gagal mengambil data laporan');
+    }
+  }
+
+  Future<List<LaporanModel>> getAllLaporanAdmin() async {
+    final uri = Uri.parse('$_baseUrl/laporan/admin/all');
+    final token = await _storageService.readToken();
+    final headers = {'Authorization': 'Bearer $token'};
+
+    final response = await http.get(uri, headers: headers);
+
+    if (response.statusCode == 200) {
+      List<dynamic> body = jsonDecode(response.body);
+      List<LaporanModel> laporanList = body
+          .map((dynamic item) => LaporanModel.fromJson(item))
+          .toList();
+      return laporanList;
+    } else {
+      throw Exception('Gagal mengambil data laporan admin');
+    }
+  }
+
+  Future<void> updateStatusLaporan(int id, String status) async {
+    final uri = Uri.parse('$_baseUrl/laporan/$id');
+    final headers = await _getAuthHeaders(); 
+
+    final response = await http.put(
+      uri,
+      headers: headers,
+      body: jsonEncode({'status': status}),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(jsonDecode(response.body)['message']);
     }
   }
 }
