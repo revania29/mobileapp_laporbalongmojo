@@ -6,7 +6,6 @@ class LaporanProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
   
   List<LaporanModel> _riwayatLaporan = [];
-  
   List<LaporanModel> _allLaporanAdmin = [];
 
   bool _isLoading = false;
@@ -43,5 +42,14 @@ class LaporanProvider with ChangeNotifier {
     }
     _isLoading = false;
     notifyListeners();
+  }
+
+  Future<void> updateStatus(int id, String newStatus) async {
+    try {
+      await _apiService.updateStatusLaporan(id, newStatus);
+      await fetchAllLaporanAdmin(); 
+    } catch (e) {
+      rethrow;
+    }
   }
 }

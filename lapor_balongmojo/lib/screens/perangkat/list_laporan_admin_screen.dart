@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:lapor_balongmojo/providers/laporan_provider.dart';
 import 'package:lapor_balongmojo/services/api_service.dart';
+import 'package:lapor_balongmojo/screens/perangkat/detail_laporan_screen.dart'; // Tambah Import
 
 class ListLaporanAdminScreen extends StatelessWidget {
   static const routeName = '/list-laporan-admin';
@@ -44,8 +45,9 @@ class ListLaporanAdminScreen extends StatelessWidget {
                     isThreeLine: true,
                     trailing: const Icon(Icons.arrow_forward_ios, size: 14),
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Fitur Detail & Edit Status akan dibuat di Hari 15')),
+                      Navigator.of(context).pushNamed(
+                        DetailLaporanScreen.routeName,
+                        arguments: lap,
                       );
                     },
                   ),
