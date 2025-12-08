@@ -15,10 +15,11 @@ class _RiwayatLaporanScreenState extends State<RiwayatLaporanScreen> {
   
   @override
   void initState() {
-    super.initState();
-    Future.microtask(() => 
-      Provider.of<LaporanProvider>(context, listen: false).fetchRiwayatLaporan()
-    );
+    super.initState(); 
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<LaporanProvider>(context, listen: false).fetchRiwayatLaporan();
+    });
   }
 
   Color _getStatusColor(String status) {
@@ -56,7 +57,6 @@ class _RiwayatLaporanScreenState extends State<RiwayatLaporanScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Gambar Laporan
                           if (lap.fotoUrl != null)
                             ClipRRect(
                               borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
@@ -70,7 +70,6 @@ class _RiwayatLaporanScreenState extends State<RiwayatLaporanScreen> {
                               ),
                             ),
                           
-                          // Isi Teks
                           Padding(
                             padding: const EdgeInsets.all(16),
                             child: Column(
@@ -87,11 +86,10 @@ class _RiwayatLaporanScreenState extends State<RiwayatLaporanScreen> {
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
-                                    // Badge Status
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color: _getStatusColor(lap.status).withOpacity(0.1),
+                                        color: _getStatusColor(lap.status).withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(8),
                                         border: Border.all(color: _getStatusColor(lap.status)),
                                       ),

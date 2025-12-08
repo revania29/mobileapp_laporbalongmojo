@@ -4,8 +4,10 @@ const db = require('./config/database');
 const path = require('path');
 require('dotenv').config();
 
+// Import Routes
 const authRoutes = require('./routes/auth');
 const laporanRoutes = require('./routes/laporan');
+const beritaRoutes = require('./routes/berita'); // <--- TAMBAHAN HARI 16
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,11 +16,13 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Static Folder (Uploads)
 app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
-// Routes
+// Register Routes
 app.use('/auth', authRoutes);
 app.use('/laporan', laporanRoutes);
+app.use('/berita', beritaRoutes); // <--- TAMBAHAN HARI 16
 
 app.get('/', (req, res) => {
     res.send('API Lapor Balongmojo Siap!');

@@ -7,7 +7,6 @@ class LaporanProvider with ChangeNotifier {
   
   List<LaporanModel> _riwayatLaporan = [];
   List<LaporanModel> _allLaporanAdmin = [];
-
   bool _isLoading = false;
 
   List<LaporanModel> get riwayatLaporan => _riwayatLaporan;
@@ -24,7 +23,7 @@ class LaporanProvider with ChangeNotifier {
     try {
       _riwayatLaporan = await _apiService.getLaporan();
     } catch (e) {
-      print("Error fetch laporan warga: $e");
+      debugPrint("Error fetch laporan warga: $e");
       _riwayatLaporan = [];
     }
     _isLoading = false;
@@ -37,7 +36,7 @@ class LaporanProvider with ChangeNotifier {
     try {
       _allLaporanAdmin = await _apiService.getAllLaporanAdmin();
     } catch (e) {
-      print("Error fetch laporan admin: $e");
+      debugPrint("Error fetch laporan admin: $e");
       _allLaporanAdmin = [];
     }
     _isLoading = false;
