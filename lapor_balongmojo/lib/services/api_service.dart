@@ -8,9 +8,9 @@ import 'package:path/path.dart';
 
 class ApiService {
   static const String _baseUrl = 'http://10.0.2.2:3000';
-  
-  static const String publicBaseUrl = _baseUrl; 
-  
+
+  static const String publicBaseUrl = _baseUrl;
+
   final SecureStorageService _storageService = SecureStorageService();
 
   Future<Map<String, String>> _getAuthHeaders() async {
@@ -36,7 +36,11 @@ class ApiService {
   }
 
   Future<void> registerMasyarakat(
-      String nama, String email, String noTelp, String password) async {
+    String nama,
+    String email,
+    String noTelp,
+    String password,
+  ) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/auth/register/masyarakat'),
       headers: {'Content-Type': 'application/json'},
@@ -54,7 +58,11 @@ class ApiService {
     }
   }
 
-  Future<void> postLaporan(String judul, String deskripsi, File imageFile) async {
+  Future<void> postLaporan(
+    String judul,
+    String deskripsi,
+    File imageFile,
+  ) async {
     final uri = Uri.parse('$_baseUrl/laporan');
     final token = await _storageService.readToken();
 
@@ -63,12 +71,14 @@ class ApiService {
     request.fields['judul'] = judul;
     request.fields['deskripsi'] = deskripsi;
 
-    request.files.add(await http.MultipartFile.fromPath(
-      'image',
-      imageFile.path,
-      filename: basename(imageFile.path),
-      contentType: MediaType('image', 'jpeg'),
-    ));
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'image',
+        imageFile.path,
+        filename: basename(imageFile.path),
+        contentType: MediaType('image', 'jpeg'),
+      ),
+    );
 
     var streamedResponse = await request.send();
     var response = await http.Response.fromStream(streamedResponse);
@@ -116,7 +126,7 @@ class ApiService {
 
   Future<void> updateStatusLaporan(int id, String status) async {
     final uri = Uri.parse('$_baseUrl/laporan/$id');
-    final headers = await _getAuthHeaders(); 
+    final headers = await _getAuthHeaders();
 
     final response = await http.put(
       uri,
@@ -125,6 +135,32 @@ class ApiService {
     );
 
     if (response.statusCode != 200) {
+      throw Exception(jsonDecode(response.body)['message']);
+    }
+  }
+
+  Future<void> postBerita(String judul, String isi, File imageFile) async {
+    final uri = Uri.parse('$_baseUrl/berita');
+    final token = await _storageService.readToken();
+
+    var request = http.MultipartRequest('POST', uri);
+    request.headers['Authorization'] = 'Bearer $token';
+    request.fields['judul'] = judul;
+    request.fields['isi'] = isi;
+
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'image',
+        imageFile.path,
+        filename: basename(imageFile.path),
+        contentType: MediaType('image', 'jpeg'),
+      ),
+    );
+
+    var streamedResponse = await request.send();
+    var response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode != 201) {
       throw Exception(jsonDecode(response.body)['message']);
     }
   }
