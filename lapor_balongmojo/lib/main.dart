@@ -13,6 +13,7 @@ import 'package:lapor_balongmojo/screens/perangkat/dashboard_screen_perangkat.da
 import 'package:lapor_balongmojo/screens/perangkat/list_laporan_admin_screen.dart';
 import 'package:lapor_balongmojo/screens/perangkat/detail_laporan_screen.dart';
 import 'package:lapor_balongmojo/screens/perangkat/form_berita_screen.dart'; 
+import 'package:lapor_balongmojo/screens/masyarakat/detail_berita_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -58,7 +59,8 @@ class MyApp extends StatelessWidget {
           DashboardScreenPerangkat.routeName: (ctx) => const DashboardScreenPerangkat(),
           ListLaporanAdminScreen.routeName: (ctx) => const ListLaporanAdminScreen(),
           DetailLaporanScreen.routeName: (ctx) => const DetailLaporanScreen(),
-          FormBeritaScreen.routeName: (ctx) => const FormBeritaScreen(), // Route Baru Hari 17
+          FormBeritaScreen.routeName: (ctx) => const FormBeritaScreen(),
+          DetailBeritaScreen.routeName: (ctx) => const DetailBeritaScreen(),
         },
       ),
     );

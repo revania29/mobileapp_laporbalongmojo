@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:lapor_balongmojo/models/laporan_model.dart';
 import 'package:lapor_balongmojo/services/secure_storage_service.dart';
+import 'package:lapor_balongmojo/models/berita_model.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:path/path.dart';
 
@@ -162,6 +163,24 @@ class ApiService {
 
     if (response.statusCode != 201) {
       throw Exception(jsonDecode(response.body)['message']);
+    }
+  }
+
+  Future<List<BeritaModel>> getBerita() async {
+    final uri = Uri.parse('$_baseUrl/berita');
+    final token = await _storageService.readToken();
+    final headers = {'Authorization': 'Bearer $token'};
+
+    final response = await http.get(uri, headers: headers);
+
+    if (response.statusCode == 200) {
+      List<dynamic> body = jsonDecode(response.body);
+      List<BeritaModel> beritaList = body
+          .map((dynamic item) => BeritaModel.fromJson(item))
+          .toList();
+      return beritaList;
+    } else {
+      throw Exception('Gagal mengambil berita');
     }
   }
 }
