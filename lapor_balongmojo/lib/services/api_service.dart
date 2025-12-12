@@ -183,4 +183,42 @@ class ApiService {
       throw Exception('Gagal mengambil berita');
     }
   }
+  Future<Map<String, dynamic>> getStatistik() async {
+    final uri = Uri.parse('$_baseUrl/laporan/stats');
+    final headers = await _getAuthHeaders();
+    final response = await http.get(uri, headers: headers);
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      return {'menunggu': 0, 'proses': 0, 'selesai': 0};
+    }
+  }
+
+  Future<List<dynamic>> getPendingUsers() async {
+    final uri = Uri.parse('$_baseUrl/users/pending');
+    final headers = await _getAuthHeaders();
+    final response = await http.get(uri, headers: headers);
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Gagal mengambil user pending');
+    }
+  }
+
+  Future<void> verifyUser(int id, String action) async {
+    final uri = Uri.parse('$_baseUrl/users/$id/verify');
+    final headers = await _getAuthHeaders();
+    
+    final response = await http.put(
+      uri, 
+      headers: headers,
+      body: jsonEncode({'action': action}),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(jsonDecode(response.body)['message']);
+    }
+  }
 }

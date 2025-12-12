@@ -16,7 +16,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
     storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    limits: { fileSize: 5 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
         const filetypes = /jpeg|jpg|png/;
         const mimetype = filetypes.test(file.mimetype);
@@ -28,11 +28,6 @@ const upload = multer({
     }
 });
 
-// ==========================================
-//  ENDPOINT UNTUK WARGA
-// ==========================================
-
-// 1. POST LAPORAN (BUAT LAPORAN BARU)
 router.post('/', verifyToken, upload.single('image'), async (req, res) => {
     try {
         const { judul, deskripsi } = req.body;
@@ -101,7 +96,6 @@ router.put('/:id', [verifyToken, isPerangkat], async (req, res) => {
             return res.status(400).json({ message: 'Status tidak valid!' });
         }
 
-        // Eksekusi Update
         const [result] = await db.query(
             'UPDATE laporan SET status = ? WHERE id = ?',
             [status, laporanId]
@@ -116,6 +110,23 @@ router.put('/:id', [verifyToken, isPerangkat], async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Gagal update status laporan.' });
+    }
+});
+
+router.get('/stats', [verifyToken, isPerangkat], async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                SUM(CASE WHEN status = 'menunggu' THEN 1 ELSE 0 END) as menunggu,
+                SUM(CASE WHEN status = 'proses' THEN 1 ELSE 0 END) as proses,
+                SUM(CASE WHEN status = 'selesai' THEN 1 ELSE 0 END) as selesai
+            FROM laporan
+        `;
+        const [rows] = await db.query(query);
+        res.json(rows[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Gagal mengambil statistik.' });
     }
 });
 
