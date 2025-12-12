@@ -14,6 +14,7 @@ import 'package:lapor_balongmojo/screens/perangkat/list_laporan_admin_screen.dar
 import 'package:lapor_balongmojo/screens/perangkat/detail_laporan_screen.dart';
 import 'package:lapor_balongmojo/screens/perangkat/form_berita_screen.dart'; 
 import 'package:lapor_balongmojo/screens/masyarakat/detail_berita_screen.dart';
+import 'package:lapor_balongmojo/screens/perangkat/verifikasi_warga_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -51,16 +52,15 @@ class MyApp extends StatelessWidget {
           SplashScreen.routeName: (ctx) => const SplashScreen(),
           LoginScreen.routeName: (ctx) => const LoginScreen(),
           RegisterMasyarakatScreen.routeName: (ctx) => const RegisterMasyarakatScreen(),
-          
           HomeScreenMasyarakat.routeName: (ctx) => const HomeScreenMasyarakat(),
           FormLaporanScreen.routeName: (ctx) => const FormLaporanScreen(),
           RiwayatLaporanScreen.routeName: (ctx) => const RiwayatLaporanScreen(),
-          
           DashboardScreenPerangkat.routeName: (ctx) => const DashboardScreenPerangkat(),
           ListLaporanAdminScreen.routeName: (ctx) => const ListLaporanAdminScreen(),
           DetailLaporanScreen.routeName: (ctx) => const DetailLaporanScreen(),
           FormBeritaScreen.routeName: (ctx) => const FormBeritaScreen(),
           DetailBeritaScreen.routeName: (ctx) => const DetailBeritaScreen(),
+          VerifikasiWargaScreen.routeName: (ctx) => const VerifikasiWargaScreen(),
         },
       ),
     );

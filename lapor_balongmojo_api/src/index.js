@@ -7,7 +7,8 @@ require('dotenv').config();
 // Import Routes
 const authRoutes = require('./routes/auth');
 const laporanRoutes = require('./routes/laporan');
-const beritaRoutes = require('./routes/berita'); // <--- TAMBAHAN HARI 16
+const beritaRoutes = require('./routes/berita');
+const userRoutes = require('./routes/users');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,7 +23,8 @@ app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 // Register Routes
 app.use('/auth', authRoutes);
 app.use('/laporan', laporanRoutes);
-app.use('/berita', beritaRoutes); // <--- TAMBAHAN HARI 16
+app.use('/berita', beritaRoutes);
+app.use('/users', userRoutes);
 
 app.get('/', (req, res) => {
     res.send('API Lapor Balongmojo Siap!');
