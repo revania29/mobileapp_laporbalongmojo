@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
-
-// Providers
 import 'package:lapor_balongmojo/providers/auth_provider.dart';
 import 'package:lapor_balongmojo/providers/laporan_provider.dart';
 import 'package:lapor_balongmojo/providers/berita_provider.dart'; 
-
-// Screens
 import 'package:lapor_balongmojo/screens/auth/login_screen.dart';
 import 'package:lapor_balongmojo/screens/auth/register_masyarakat_screen.dart';
 import 'package:lapor_balongmojo/screens/splash_screen.dart';
@@ -20,14 +16,18 @@ import 'package:lapor_balongmojo/screens/perangkat/detail_laporan_screen.dart';
 import 'package:lapor_balongmojo/screens/perangkat/form_berita_screen.dart'; 
 import 'package:lapor_balongmojo/screens/masyarakat/detail_berita_screen.dart';
 import 'package:lapor_balongmojo/screens/perangkat/verifikasi_warga_screen.dart';
+import 'package:lapor_balongmojo/services/fcm_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   try {
     await Firebase.initializeApp();
+    final fcmService = FcmService();
+    await fcmService.init();
+    
   } catch (e) {
-    debugPrint("Gagal inisialisasi Firebase: $e");
+    debugPrint("Gagal inisialisasi Firebase/FCM: $e");
   }
 
   runApp(const MyApp());

@@ -19,6 +19,7 @@ class _FormBeritaScreenState extends State<FormBeritaScreen> {
   final _isiController = TextEditingController();
   
   File? _selectedImage;
+  bool _isDarurat = false; 
 
   Future<void> _pickImage(ImageSource source) async {
     final returnedImage = await ImagePicker().pickImage(source: source);
@@ -43,13 +44,14 @@ class _FormBeritaScreenState extends State<FormBeritaScreen> {
         _judulController.text,
         _isiController.text,
         _selectedImage!,
+        _isDarurat, 
       );
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Berita Berhasil Dipublikasikan!')),
       );
-      Navigator.of(context).pop(); // Kembali ke Dashboard
+      Navigator.of(context).pop(); 
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -91,9 +93,36 @@ class _FormBeritaScreenState extends State<FormBeritaScreen> {
                 ),
                 validator: (val) => val!.isEmpty ? 'Isi berita wajib diisi' : null,
               ),
+              const SizedBox(height: 10),
+
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.red[50],
+                  border: Border.all(color: Colors.red.withOpacity(0.5)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: SwitchListTile(
+                  title: const Text(
+                    "Peringatan Darurat?", 
+                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)
+                  ),
+                  subtitle: const Text(
+                    "Centang ini jika berita bersifat bahaya/urgent. Notifikasi akan dikirim ke semua warga.", 
+                    style: TextStyle(fontSize: 12)
+                  ),
+                  value: _isDarurat,
+                  activeColor: Colors.red,
+                  onChanged: (val) {
+                    setState(() {
+                      _isDarurat = val;
+                    });
+                  },
+                ),
+              ),
+              // -----------------------------------------
+
               const SizedBox(height: 20),
               
-              // Preview Gambar
               Container(
                 height: 200,
                 decoration: BoxDecoration(
