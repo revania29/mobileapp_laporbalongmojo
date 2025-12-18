@@ -8,8 +8,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:path/path.dart';
 
 class ApiService {
-  static const String _baseUrl = 'http://10.0.2.2:3000';
-
+  static const String _baseUrl = 'http://10.0.2.2:3000'; 
   static const String publicBaseUrl = _baseUrl;
 
   final SecureStorageService _storageService = SecureStorageService();
@@ -21,7 +20,7 @@ class ApiService {
       'Content-Type': 'application/json',
     };
   }
-
+  
   Future<Map<String, dynamic>> login(String email, String password) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/auth/login'),
@@ -140,7 +139,7 @@ class ApiService {
     }
   }
 
-  Future<void> postBerita(String judul, String isi, File imageFile) async {
+  Future<void> postBerita(String judul, String isi, File imageFile, bool isDarurat) async {
     final uri = Uri.parse('$_baseUrl/berita');
     final token = await _storageService.readToken();
 
@@ -148,6 +147,7 @@ class ApiService {
     request.headers['Authorization'] = 'Bearer $token';
     request.fields['judul'] = judul;
     request.fields['isi'] = isi;
+    request.fields['is_darurat'] = isDarurat.toString(); 
 
     request.files.add(
       await http.MultipartFile.fromPath(
@@ -183,6 +183,7 @@ class ApiService {
       throw Exception('Gagal mengambil berita');
     }
   }
+
   Future<Map<String, dynamic>> getStatistik() async {
     final uri = Uri.parse('$_baseUrl/laporan/stats');
     final headers = await _getAuthHeaders();

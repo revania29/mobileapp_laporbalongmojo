@@ -12,11 +12,11 @@ class BeritaProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   List<BeritaModel> get listBerita => _listBerita;
 
-  Future<void> postBerita(String judul, String isi, File image) async {
+  Future<void> postBerita(String judul, String isi, File image, bool isDarurat) async {
     _isLoading = true;
     notifyListeners();
     try {
-      await _apiService.postBerita(judul, isi, image);
+      await _apiService.postBerita(judul, isi, image, isDarurat);
       await fetchBerita(); 
     } catch (e) {
       debugPrint("Error post berita: $e");
