@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:lapor_balongmojo/providers/auth_provider.dart';
 import 'package:lapor_balongmojo/widgets/custom_textfield.dart';
-import 'package:lapor_balongmojo/widgets/primary_button.dart';
+import 'package:lapor_balongmojo/utils/ui_utils.dart';  
 
 class RegisterMasyarakatScreen extends StatefulWidget {
   static const routeName = '/register-masyarakat';
@@ -13,15 +13,19 @@ class RegisterMasyarakatScreen extends StatefulWidget {
 }
 
 class _RegisterMasyarakatScreenState extends State<RegisterMasyarakatScreen> {
-  final _formKey = GlobalKey<FormState>();
   final _namaController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _nikController = TextEditingController();
   final _passwordController = TextEditingController();
+  
   bool _isLoading = false;
 
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _register() async {
+    if (_namaController.text.isEmpty || _emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      UiUtils.showError(context, "Semua field wajib diisi!");
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -29,43 +33,62 @@ class _RegisterMasyarakatScreenState extends State<RegisterMasyarakatScreen> {
       await Provider.of<AuthProvider>(context, listen: false).register(
         _namaController.text,
         _emailController.text,
-        _phoneController.text,
         _passwordController.text,
+        _nikController.text,
+        _phoneController.text,
       );
-      
+
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Registrasi Berhasil! Silakan Login.')),
-      );
+      
+      UiUtils.showSuccess(context, "Pendaftaran berhasil! Silakan Login.");
       Navigator.of(context).pop(); 
+
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal: ${e.toString()}')),
-      );
+      UiUtils.showError(context, "Gagal daftar: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-
-    setState(() => _isLoading = false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Daftar Akun')),
+      appBar: AppBar(title: const Text('Daftar Akun Warga')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              CustomTextField(controller: _namaController, labelText: 'Nama Lengkap', icon: Icons.person),
-              CustomTextField(controller: _emailController, labelText: 'Email', icon: Icons.email, keyboardType: TextInputType.emailAddress),
-              CustomTextField(controller: _phoneController, labelText: 'No. Telepon', icon: Icons.phone, keyboardType: TextInputType.phone),
-              CustomTextField(controller: _passwordController, labelText: 'Password', icon: Icons.lock, isPassword: true),
-              const SizedBox(height: 24),
-              PrimaryButton(text: 'DAFTAR SEKARANG', onPressed: _submit, isLoading: _isLoading),
-            ],
-          ),
+        child: Column(
+          children: [
+            const Icon(Icons.person_add, size: 60, color: Colors.indigo),
+            const SizedBox(height: 20),
+            
+            CustomTextField(controller: _namaController, labelText: 'Nama Lengkap', icon: Icons.person),
+            const SizedBox(height: 12),
+            CustomTextField(controller: _nikController, labelText: 'NIK', icon: Icons.badge, keyboardType: TextInputType.number),
+            const SizedBox(height: 12),
+            CustomTextField(controller: _phoneController, labelText: 'No. Telepon', icon: Icons.phone, keyboardType: TextInputType.phone),
+            const SizedBox(height: 12),
+            CustomTextField(controller: _emailController, labelText: 'Email', icon: Icons.email, keyboardType: TextInputType.emailAddress),
+            const SizedBox(height: 12),
+            CustomTextField(controller: _passwordController, labelText: 'Password', icon: Icons.lock, obscureText: true),
+            
+            const SizedBox(height: 30),
+            
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _register,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.indigo,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: _isLoading
+                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white))
+                  : const Text('DAFTAR SEKARANG', style: TextStyle(fontSize: 16)),
+              ),
+            ),
+          ],
         ),
       ),
     );
