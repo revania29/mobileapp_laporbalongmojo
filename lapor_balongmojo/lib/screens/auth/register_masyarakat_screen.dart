@@ -22,7 +22,12 @@ class _RegisterMasyarakatScreenState extends State<RegisterMasyarakatScreen> {
   bool _isLoading = false;
 
   Future<void> _register() async {
-    if (_namaController.text.isEmpty || _emailController.text.isEmpty || _passwordController.text.isEmpty) {
+    // Validasi input kosong manual
+    if (_namaController.text.isEmpty || 
+        _emailController.text.isEmpty || 
+        _passwordController.text.isEmpty ||
+        _nikController.text.isEmpty ||
+        _phoneController.text.isEmpty) {
       UiUtils.showError(context, "Semua field wajib diisi!");
       return;
     }
@@ -30,6 +35,7 @@ class _RegisterMasyarakatScreenState extends State<RegisterMasyarakatScreen> {
     setState(() => _isLoading = true);
 
     try {
+      // Mengirim 5 Parameter ke Provider
       await Provider.of<AuthProvider>(context, listen: false).register(
         _namaController.text,
         _emailController.text,
@@ -62,15 +68,45 @@ class _RegisterMasyarakatScreenState extends State<RegisterMasyarakatScreen> {
             const Icon(Icons.person_add, size: 60, color: Colors.indigo),
             const SizedBox(height: 20),
             
-            CustomTextField(controller: _namaController, labelText: 'Nama Lengkap', icon: Icons.person),
+            CustomTextField(
+              controller: _namaController, 
+              labelText: 'Nama Lengkap', 
+              icon: Icons.person
+            ),
             const SizedBox(height: 12),
-            CustomTextField(controller: _nikController, labelText: 'NIK', icon: Icons.badge, keyboardType: TextInputType.number),
+            
+            CustomTextField(
+              controller: _nikController, 
+              labelText: 'NIK', 
+              icon: Icons.badge, 
+              keyboardType: TextInputType.number
+            ),
             const SizedBox(height: 12),
-            CustomTextField(controller: _phoneController, labelText: 'No. Telepon', icon: Icons.phone, keyboardType: TextInputType.phone),
+            
+            CustomTextField(
+              controller: _phoneController, 
+              labelText: 'No. Telepon', 
+              icon: Icons.phone, 
+              keyboardType: TextInputType.phone
+            ),
             const SizedBox(height: 12),
-            CustomTextField(controller: _emailController, labelText: 'Email', icon: Icons.email, keyboardType: TextInputType.emailAddress),
+            
+            CustomTextField(
+              controller: _emailController, 
+              labelText: 'Email', 
+              icon: Icons.email, 
+              keyboardType: TextInputType.emailAddress
+            ),
             const SizedBox(height: 12),
-            CustomTextField(controller: _passwordController, labelText: 'Password', icon: Icons.lock, obscureText: true),
+            
+            // PERBAIKAN DI SINI:
+            // Menggunakan isPassword: true (sesuai file custom_textfield.dart Anda)
+            CustomTextField(
+              controller: _passwordController, 
+              labelText: 'Password', 
+              icon: Icons.lock, 
+              isPassword: true, // <-- Ganti obscureText jadi isPassword
+            ),
             
             const SizedBox(height: 30),
             

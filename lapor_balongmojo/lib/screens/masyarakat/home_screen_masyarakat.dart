@@ -7,6 +7,8 @@ import 'package:lapor_balongmojo/screens/masyarakat/form_laporan_screen.dart';
 import 'package:lapor_balongmojo/screens/masyarakat/riwayat_laporan_screen.dart';
 import 'package:lapor_balongmojo/screens/masyarakat/detail_berita_screen.dart'; 
 import 'package:lapor_balongmojo/services/api_service.dart';
+import 'package:lapor_balongmojo/utils/ui_utils.dart';
+
 
 class HomeScreenMasyarakat extends StatefulWidget {
   static const routeName = '/home-masyarakat';
@@ -48,9 +50,12 @@ class _HomeScreenMasyarakatState extends State<HomeScreenMasyarakat> {
                     TextButton(
                       onPressed: () async {
                         Navigator.of(ctx).pop();
+                        final rootNavigator = Navigator.of(context);
+                        final scaffoldContext = context;
                         await Provider.of<AuthProvider>(context, listen: false).logout();
-                        if (!context.mounted) return;
-                        Navigator.of(context).pushNamedAndRemoveUntil(LoginScreen.routeName, (route) => false);
+                        if (!mounted) return;
+                        UiUtils.showSuccess(scaffoldContext, "Anda berhasil keluar. Sampai jumpa!");
+                        rootNavigator.pushNamedAndRemoveUntil(LoginScreen.routeName, (route) => false);
                       },
                       child: const Text('Ya, Keluar'),
                     ),

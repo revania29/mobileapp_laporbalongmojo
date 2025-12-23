@@ -5,7 +5,7 @@ import 'package:lapor_balongmojo/screens/auth/register_masyarakat_screen.dart';
 import 'package:lapor_balongmojo/screens/masyarakat/home_screen_masyarakat.dart';
 import 'package:lapor_balongmojo/screens/perangkat/dashboard_screen_perangkat.dart';
 import 'package:lapor_balongmojo/widgets/custom_textfield.dart';
-import 'package:lapor_balongmojo/widgets/primary_button.dart';
+// Import PrimaryButton DIHAPUS karena tidak dipakai
 import 'package:lapor_balongmojo/utils/ui_utils.dart'; 
 
 class LoginScreen extends StatefulWidget {
@@ -39,8 +39,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final user = Provider.of<AuthProvider>(context, listen: false).user;
       
+      // Feedback Sukses
       UiUtils.showSuccess(context, "Selamat datang, ${user?.nama}!");
 
+      // Redirect sesuai Role
       if (user?.role == 'perangkat') {
         Navigator.of(context).pushReplacementNamed(DashboardScreenPerangkat.routeName);
       } else {
@@ -85,10 +87,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: _passwordController,
                 labelText: 'Password',
                 icon: Icons.lock,
-                obscureText: true,
+                isPassword: true,
               ),
               const SizedBox(height: 24),
               
+              // Kita pakai ElevatedButton manual disini agar bisa handle loading spinner
               SizedBox(
                 height: 50,
                 child: ElevatedButton(
