@@ -1,9 +1,11 @@
+version: '3.8'
+
 services:
   # Service Database
   db:
     image: mysql:8.0
     container_name: lapor_balongmojo_db
-    restart: unless-stopped
+    restart: always  # Diperbarui sesuai Hari 27 (Auto Restart)
     environment:
       MYSQL_ROOT_PASSWORD: 'password'
       MYSQL_DATABASE: 'lapor_balongmojo'
@@ -16,7 +18,7 @@ services:
   api:
     container_name: lapor_balongmojo_api
     build: .
-    restart: unless-stopped
+    restart: always  # Diperbarui sesuai Hari 27 (Auto Restart)
     ports:
       - '3000:3000'
     depends_on:
@@ -26,13 +28,15 @@ services:
       DB_USER: 'root'
       DB_PASSWORD: 'password'
       DB_DATABASE: 'lapor_balongmojo'
-      JWT_SECRET: 'password' 
-
-    command: npm run dev 
+      JWT_SECRET: 'password'
+    
+    # Command untuk development (agar hot-reload jalan)
+    command: npm run dev
     
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
+      # Mapping folder uploads agar gambar tidak hilang saat container direstart
       - ./public/uploads:/usr/src/app/public/uploads
 
 volumes:
