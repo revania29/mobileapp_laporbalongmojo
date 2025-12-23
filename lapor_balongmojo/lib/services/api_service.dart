@@ -1,40 +1,43 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:lapor_balongmojo/models/laporan_model.dart';
-import 'package:lapor_balongmojo/services/secure_storage_service.dart';
-import 'package:lapor_balongmojo/models/berita_model.dart';
+import 'package:flutter/material.dart'; // Untuk debugPrint
 import 'package:http_parser/http_parser.dart';
+import 'package:lapor_balongmojo/services/secure_storage_service.dart'; // Sesuai nama file Anda
 import 'package:path/path.dart';
 
 class ApiService {
+  // IP Emulator: 10.0.2.2 | Device Fisik: Ganti dengan IP Laptop (misal 192.168.1.x)
   static const String _baseUrl = 'http://10.0.2.2:3000';
   static const String publicBaseUrl = _baseUrl;
 
   final SecureStorageService _storageService = SecureStorageService();
 
-  Future<Map<String, String>> _getAuthHeaders() async {
-    final token = await _storageService.readToken();
-    return {
-      'Authorization': 'Bearer $token',
-      'Content-Type': 'application/json',
-    };
-  }
-
+  // --- 1. LOGIN ---
   Future<Map<String, dynamic>> login(String email, String password) async {
-    final response = await http.post(
-      Uri.parse('$_baseUrl/auth/login'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
-    );
+    final uri = Uri.parse('$_baseUrl/auth/login');
+    
+    try {
+      final response = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'password': password}),
+      );
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception(jsonDecode(response.body)['message']);
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return data; 
+      } else {
+        throw Exception(data['message'] ?? 'Login gagal');
+      }
+    } catch (e) {
+      debugPrint("Error Login: $e");
+      rethrow;
     }
   }
 
+  // --- 2. REGISTER (MASYARAKAT) ---
   Future<void> register(String nama, String email, String password, String nik, String phone) async {
     final uri = Uri.parse('$_baseUrl/auth/register');
     
@@ -47,7 +50,7 @@ class ApiService {
         'password': password,
         'nik': nik,
         'no_telepon': phone,
-        'role': 'masyarakat',
+        'role': 'masyarakat', 
       }),
     );
 
@@ -56,11 +59,25 @@ class ApiService {
     }
   }
 
-  Future<void> postLaporan(
-    String judul,
-    String deskripsi,
-    File imageFile,
-  ) async {
+  // --- 3. GET BERITA (Warga) ---
+  Future<List<dynamic>> getBerita() async {
+    final uri = Uri.parse('$_baseUrl/berita');
+    final token = await _storageService.readToken();
+
+    final response = await http.get(
+      uri,
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Gagal memuat berita');
+    }
+  }
+
+  // --- 4. POST LAPORAN (Warga) ---
+  Future<void> postLaporan(String judul, String deskripsi, File imageFile) async {
     final uri = Uri.parse('$_baseUrl/laporan');
     final token = await _storageService.readToken();
 
@@ -68,81 +85,79 @@ class ApiService {
     request.headers['Authorization'] = 'Bearer $token';
     request.fields['judul'] = judul;
     request.fields['deskripsi'] = deskripsi;
+    // request.fields['lokasi'] = lokasi; // Jika ada fitur lokasi
 
-    request.files.add(
-      await http.MultipartFile.fromPath(
-        'image',
-        imageFile.path,
-        filename: basename(imageFile.path),
-        contentType: MediaType('image', 'jpeg'),
-      ),
-    );
+    request.files.add(await http.MultipartFile.fromPath(
+      'image',
+      imageFile.path,
+      filename: basename(imageFile.path),
+      contentType: MediaType('image', 'jpeg'),
+    ));
 
-    var streamedResponse = await request.send();
-    var response = await http.Response.fromStream(streamedResponse);
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
 
     if (response.statusCode != 201) {
-      throw Exception(jsonDecode(response.body)['message']);
+      throw Exception('Gagal mengirim laporan: ${jsonDecode(response.body)['message']}');
     }
   }
 
-  Future<List<LaporanModel>> getLaporan() async {
-    final uri = Uri.parse('$_baseUrl/laporan');
+  // --- 5. GET RIWAYAT LAPORAN (Warga) ---
+  Future<List<dynamic>> getLaporan() async {
+    // Endpoint bisa '/laporan' atau '/laporan/riwayat' tergantung backend user controller
+    final uri = Uri.parse('$_baseUrl/laporan'); 
     final token = await _storageService.readToken();
-    final headers = {'Authorization': 'Bearer $token'};
 
-    final response = await http.get(uri, headers: headers);
+    final response = await http.get(
+      uri,
+      headers: {'Authorization': 'Bearer $token'},
+    );
 
     if (response.statusCode == 200) {
-      List<dynamic> body = jsonDecode(response.body);
-      List<LaporanModel> laporanList = body
-          .map((dynamic item) => LaporanModel.fromJson(item))
-          .toList();
-      return laporanList;
+      return jsonDecode(response.body);
     } else {
-      throw Exception('Gagal mengambil data laporan');
+      throw Exception('Gagal memuat riwayat laporan');
     }
   }
 
-  Future<List<LaporanModel>> getAllLaporanAdmin() async {
+  // --- 6. GET SEMUA LAPORAN (Admin) ---
+  Future<List<dynamic>> getAllLaporanAdmin() async {
     final uri = Uri.parse('$_baseUrl/laporan/admin/all');
     final token = await _storageService.readToken();
-    final headers = {'Authorization': 'Bearer $token'};
 
-    final response = await http.get(uri, headers: headers);
+    final response = await http.get(
+      uri,
+      headers: {'Authorization': 'Bearer $token'},
+    );
 
     if (response.statusCode == 200) {
-      List<dynamic> body = jsonDecode(response.body);
-      List<LaporanModel> laporanList = body
-          .map((dynamic item) => LaporanModel.fromJson(item))
-          .toList();
-      return laporanList;
+      return jsonDecode(response.body);
     } else {
-      throw Exception('Gagal mengambil data laporan admin');
+      throw Exception('Gagal memuat data admin');
     }
   }
 
+  // --- 7. UPDATE STATUS LAPORAN (Admin) ---
   Future<void> updateStatusLaporan(int id, String status) async {
     final uri = Uri.parse('$_baseUrl/laporan/$id');
-    final headers = await _getAuthHeaders();
+    final token = await _storageService.readToken();
 
     final response = await http.put(
       uri,
-      headers: headers,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token'
+      },
       body: jsonEncode({'status': status}),
     );
 
     if (response.statusCode != 200) {
-      throw Exception(jsonDecode(response.body)['message']);
+      throw Exception('Gagal update status');
     }
   }
 
-  Future<void> postBerita(
-    String judul,
-    String isi,
-    File imageFile,
-    bool isDarurat,
-  ) async {
+  // --- 8. POST BERITA (Admin) ---
+  Future<void> postBerita(String judul, String isi, File imageFile, bool isDarurat) async {
     final uri = Uri.parse('$_baseUrl/berita');
     final token = await _storageService.readToken();
 
@@ -150,47 +165,34 @@ class ApiService {
     request.headers['Authorization'] = 'Bearer $token';
     request.fields['judul'] = judul;
     request.fields['isi'] = isi;
-    request.fields['is_darurat'] = isDarurat.toString();
+    request.fields['is_darurat'] = isDarurat.toString(); 
 
-    request.files.add(
-      await http.MultipartFile.fromPath(
-        'image',
-        imageFile.path,
-        filename: basename(imageFile.path),
-        contentType: MediaType('image', 'jpeg'),
-      ),
-    );
+    request.files.add(await http.MultipartFile.fromPath(
+      'image',
+      imageFile.path,
+      filename: basename(imageFile.path),
+      contentType: MediaType('image', 'jpeg'),
+    ));
 
-    var streamedResponse = await request.send();
-    var response = await http.Response.fromStream(streamedResponse);
-
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+    
     if (response.statusCode != 201) {
-      throw Exception(jsonDecode(response.body)['message']);
+      throw Exception('Gagal upload berita: ${jsonDecode(response.body)['message']}');
     }
   }
 
-  Future<List<BeritaModel>> getBerita() async {
-    final uri = Uri.parse('$_baseUrl/berita');
-    final token = await _storageService.readToken();
-    final headers = {'Authorization': 'Bearer $token'};
-
-    final response = await http.get(uri, headers: headers);
-
-    if (response.statusCode == 200) {
-      List<dynamic> body = jsonDecode(response.body);
-      List<BeritaModel> beritaList = body
-          .map((dynamic item) => BeritaModel.fromJson(item))
-          .toList();
-      return beritaList;
-    } else {
-      throw Exception('Gagal mengambil berita');
-    }
-  }
-
+  // --- 9. GET STATISTIK (Admin) ---
   Future<Map<String, dynamic>> getStatistik() async {
-    final uri = Uri.parse('$_baseUrl/laporan/stats');
-    final headers = await _getAuthHeaders();
-    final response = await http.get(uri, headers: headers);
+    // Sesuaikan endpoint backend Anda. 
+    // Di backend Hari 19/27 endpointnya biasanya '/laporan/admin/statistik' atau '/laporan/stats'
+    final uri = Uri.parse('$_baseUrl/laporan/stats'); // Mengikuti kode Anda sebelumnya
+    final token = await _storageService.readToken();
+
+    final response = await http.get(
+      uri,
+      headers: {'Authorization': 'Bearer $token'},
+    );
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -199,30 +201,38 @@ class ApiService {
     }
   }
 
+  // --- 10. GET USERS PENDING (Admin - Verifikasi) ---
   Future<List<dynamic>> getPendingUsers() async {
-    final uri = Uri.parse('$_baseUrl/users/pending');
-    final headers = await _getAuthHeaders();
-    final response = await http.get(uri, headers: headers);
+    // Endpoint backend biasanya '/auth/pending-users' atau '/users/pending'
+    final uri = Uri.parse('$_baseUrl/users/pending'); // Mengikuti kode Anda sebelumnya
+    final token = await _storageService.readToken();
+
+    final response = await http.get(uri, headers: {'Authorization': 'Bearer $token'});
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      throw Exception('Gagal mengambil user pending');
+      throw Exception('Gagal ambil user pending');
     }
   }
 
-  Future<void> verifyUser(int id, String action) async {
-    final uri = Uri.parse('$_baseUrl/users/$id/verify');
-    final headers = await _getAuthHeaders();
+  // --- 11. VERIFIKASI USER (Admin) ---
+  Future<void> verifyUser(int userId, String action) async {
+    // Endpoint backend
+    final uri = Uri.parse('$_baseUrl/users/$userId/verify'); // Mengikuti kode Anda sebelumnya
+    final token = await _storageService.readToken();
 
     final response = await http.put(
       uri,
-      headers: headers,
-      body: jsonEncode({'action': action}),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token'
+      },
+      body: jsonEncode({'action': action}), // 'approve' atau 'reject'
     );
 
     if (response.statusCode != 200) {
-      throw Exception(jsonDecode(response.body)['message']);
+      throw Exception('Gagal verifikasi user');
     }
   }
 }
