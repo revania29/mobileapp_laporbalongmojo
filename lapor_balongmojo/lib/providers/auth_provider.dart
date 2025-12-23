@@ -34,7 +34,7 @@ class AuthProvider with ChangeNotifier {
     final role = prefs.getString('userRole') ?? 'masyarakat';
     final nama = prefs.getString('userName') ?? 'User';
     final id = prefs.getInt('userId') ?? 0;
-    
+
     _user = UserModel(id: id, nama: nama, email: '', role: role);
 
     _status = AuthStatus.authenticated;
@@ -45,12 +45,12 @@ class AuthProvider with ChangeNotifier {
   Future<void> login(String email, String password) async {
     try {
       final responseData = await _apiService.login(email, password);
-      
+
       _token = responseData['token'];
       _user = UserModel.fromJson(responseData['user']);
-      
+
       await _storageService.writeToken(_token!);
-      
+
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('userRole', _user!.role); // Role disimpan disini
       await prefs.setString('userName', _user!.nama);
@@ -65,19 +65,29 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  Future<void> register(String nama, String email, String noTelp, String password) async {
-    await _apiService.registerMasyarakat(nama, email, noTelp, password);
+  Future<void> register(
+    String nama,
+    String email,
+    String password,
+    String nik,
+    String phone,
+  ) async {
+    try {
+      await _apiService.register(nama, email, password, nik, phone);
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future<void> logout() async {
     _token = null;
     _user = null;
     _status = AuthStatus.unauthenticated;
-    
+
     await _storageService.deleteToken();
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
-    
+
     notifyListeners();
   }
 }

@@ -6,6 +6,7 @@ import 'package:lapor_balongmojo/screens/perangkat/form_berita_screen.dart';
 import 'package:lapor_balongmojo/screens/perangkat/list_laporan_admin_screen.dart';
 import 'package:lapor_balongmojo/screens/perangkat/verifikasi_warga_screen.dart';
 import 'package:lapor_balongmojo/services/api_service.dart';
+import 'package:lapor_balongmojo/utils/ui_utils.dart'; // Pastikan ini di-import
 
 class DashboardScreenPerangkat extends StatefulWidget {
   static const routeName = '/dashboard-perangkat';
@@ -16,11 +17,13 @@ class DashboardScreenPerangkat extends StatefulWidget {
 }
 
 class _DashboardScreenPerangkatState extends State<DashboardScreenPerangkat> {
+  // Variable penampung statistik
   Map<String, dynamic> _stats = {'menunggu': 0, 'proses': 0, 'selesai': 0};
 
   @override
   void initState() {
     super.initState();
+    // Load statistik saat layar dibuka
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadStats());
   }
 
@@ -28,7 +31,7 @@ class _DashboardScreenPerangkatState extends State<DashboardScreenPerangkat> {
   Future<void> _loadStats() async {
     try {
       final stats = await ApiService().getStatistik();
-      if(mounted) setState(() => _stats = stats);
+      if (mounted) setState(() => _stats = stats);
     } catch (e) {
       debugPrint("Gagal load stats: $e");
     }
@@ -55,11 +58,27 @@ class _DashboardScreenPerangkatState extends State<DashboardScreenPerangkat> {
                     TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Batal')),
                     TextButton(
                       onPressed: () async {
+                        // 1. Tutup Dialog dulu
                         Navigator.of(ctx).pop();
+
+                        // 2. Simpan referensi navigator & context sebelum async gap
                         final rootNavigator = Navigator.of(context);
+                        final scaffoldContext = context; 
+
+                        // 3. Proses Logout Provider
                         await Provider.of<AuthProvider>(context, listen: false).logout();
+                        
+                        // 4. Cek mounted
                         if (!mounted) return;
-                        rootNavigator.pushNamedAndRemoveUntil(LoginScreen.routeName, (route) => false);
+                        
+                        // 5. Tampilkan Pesan Sukses (Fitur Hari 26)
+                        UiUtils.showSuccess(scaffoldContext, "Logout Berhasil. Sampai jumpa Admin!");
+
+                        // 6. Pindah ke Halaman Login
+                        rootNavigator.pushNamedAndRemoveUntil(
+                          LoginScreen.routeName, 
+                          (route) => false
+                        );
                       },
                       child: const Text('Ya, Keluar'),
                     ),
@@ -78,7 +97,10 @@ class _DashboardScreenPerangkatState extends State<DashboardScreenPerangkat> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Selamat Datang,', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
-              Text(user?.nama ?? 'Admin Desa', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              Text(
+                user?.nama ?? 'Admin Desa',
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 20),
 
               const Text("Statistik Laporan (Realtime)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
@@ -97,7 +119,7 @@ class _DashboardScreenPerangkatState extends State<DashboardScreenPerangkat> {
               const Text("Menu Manajemen", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
               const SizedBox(height: 10),
               
-              // Menu 1: Verifikasi Warga (BARU)
+              // Menu 1: Verifikasi Warga
                Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -161,7 +183,9 @@ class _StatCard extends StatelessWidget {
   final String title;
   final String count;
   final Color color;
+
   const _StatCard({required this.title, required this.count, required this.color});
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -169,6 +193,7 @@ class _StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(12),
+        // Menggunakan withValues() pengganti withOpacity()
         boxShadow: [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 4, offset: const Offset(0, 4))],
       ),
       child: Column(

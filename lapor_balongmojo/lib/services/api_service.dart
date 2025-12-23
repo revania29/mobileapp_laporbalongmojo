@@ -8,7 +8,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:path/path.dart';
 
 class ApiService {
-  static const String _baseUrl = 'http://10.0.2.2:3000'; 
+  static const String _baseUrl = 'http://10.0.2.2:3000';
   static const String publicBaseUrl = _baseUrl;
 
   final SecureStorageService _storageService = SecureStorageService();
@@ -20,7 +20,7 @@ class ApiService {
       'Content-Type': 'application/json',
     };
   }
-  
+
   Future<Map<String, dynamic>> login(String email, String password) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/auth/login'),
@@ -35,20 +35,18 @@ class ApiService {
     }
   }
 
-  Future<void> registerMasyarakat(
-    String nama,
-    String email,
-    String noTelp,
-    String password,
-  ) async {
+  Future<void> register(String nama, String email, String password, String nik, String phone) async {
+    final uri = Uri.parse('$_baseUrl/auth/register');
+    
     final response = await http.post(
-      Uri.parse('$_baseUrl/auth/register/masyarakat'),
+      uri,
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'nama_lengkap': nama,
         'email': email,
-        'no_telepon': noTelp,
         'password': password,
+        'nik': nik,
+        'no_telepon': phone,
         'role': 'masyarakat',
       }),
     );
@@ -139,7 +137,12 @@ class ApiService {
     }
   }
 
-  Future<void> postBerita(String judul, String isi, File imageFile, bool isDarurat) async {
+  Future<void> postBerita(
+    String judul,
+    String isi,
+    File imageFile,
+    bool isDarurat,
+  ) async {
     final uri = Uri.parse('$_baseUrl/berita');
     final token = await _storageService.readToken();
 
@@ -147,7 +150,7 @@ class ApiService {
     request.headers['Authorization'] = 'Bearer $token';
     request.fields['judul'] = judul;
     request.fields['isi'] = isi;
-    request.fields['is_darurat'] = isDarurat.toString(); 
+    request.fields['is_darurat'] = isDarurat.toString();
 
     request.files.add(
       await http.MultipartFile.fromPath(
@@ -211,9 +214,9 @@ class ApiService {
   Future<void> verifyUser(int id, String action) async {
     final uri = Uri.parse('$_baseUrl/users/$id/verify');
     final headers = await _getAuthHeaders();
-    
+
     final response = await http.put(
-      uri, 
+      uri,
       headers: headers,
       body: jsonEncode({'action': action}),
     );

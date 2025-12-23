@@ -5,3 +5,5 @@
 # Mac/Windows system
 .DS_Store
 Thumbs.db
+
+src/config/serviceAccountKey.json
