@@ -14,7 +14,7 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-    
+  
   @override
   void initState() {
     super.initState();
@@ -22,6 +22,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkAuth() async {
+    // Delay estetika agar logo terlihat
     await Future.delayed(const Duration(seconds: 2));
     
     if (!mounted) return;
@@ -45,41 +46,65 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.indigo, 
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 5))
-                ]
+      // HAPUS backgroundColor solid, GANTI dengan Container Gradient
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.indigo, Colors.teal], // Gradasi warna brand
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Logo dalam lingkaran putih
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2), // Shadow halus
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    )
+                  ]
+                ),
+                child: const Icon(Icons.verified_user, size: 70, color: Colors.indigo),
               ),
-              child: const Icon(Icons.verified_user, size: 60, color: Colors.indigo),
-            ),
-            const SizedBox(height: 20),
-            
-            const Text(
-              'LAPOR\nBALONGMOJO',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                letterSpacing: 2,
+              const SizedBox(height: 24),
+              
+              // Teks Judul
+              const Text(
+                'LAPOR\nBALONGMOJO',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 2,
+                  height: 1.2,
+                ),
               ),
-            ),
-            
-            const SizedBox(height: 50),
-            
-            const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
-          ],
+              
+              const SizedBox(height: 50),
+              
+              // Loading Indicator Putih
+              const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                strokeWidth: 3,
+              ),
+              
+              const SizedBox(height: 20),
+              const Text(
+                'Versi 1.0.0',
+                style: TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+            ],
+          ),
         ),
       ),
     );
