@@ -21,6 +21,7 @@ import 'package:lapor_balongmojo/screens/perangkat/list_laporan_admin_screen.dar
 import 'package:lapor_balongmojo/screens/perangkat/detail_laporan_screen.dart';
 import 'package:lapor_balongmojo/screens/perangkat/form_berita_screen.dart';
 import 'package:lapor_balongmojo/screens/perangkat/verifikasi_warga_screen.dart';
+import 'package:lapor_balongmojo/screens/common/about_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,7 +56,6 @@ class MyApp extends StatelessWidget {
           primarySwatch: Colors.indigo,
           scaffoldBackgroundColor: Colors.grey[50],
           useMaterial3: false,
-          // Konfigurasi Input Style Global
           inputDecorationTheme: InputDecorationTheme(
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -64,14 +64,13 @@ class MyApp extends StatelessWidget {
           ),
         ),
         
-        // Gunakan Splash Screen sebagai awal
         initialRoute: SplashScreen.routeName, 
         
-        // Daftar Routes
         routes: {
           SplashScreen.routeName: (ctx) => const SplashScreen(),
           LoginScreen.routeName: (ctx) => const LoginScreen(),
           RegisterMasyarakatScreen.routeName: (ctx) => const RegisterMasyarakatScreen(),
+          AboutScreen.routeName: (ctx) => const AboutScreen(),
           
           // Masyarakat
           HomeScreenMasyarakat.routeName: (ctx) => const HomeScreenMasyarakat(),

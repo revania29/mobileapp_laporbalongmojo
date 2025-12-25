@@ -38,6 +38,12 @@ class _HomeScreenMasyarakatState extends State<HomeScreenMasyarakat> {
         title: const Text('Lapor Balongmojo'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.info_outline),
+            onPressed: () {
+              Navigator.of(context).pushNamed('/about');
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.exit_to_app),
             onPressed: () {
               showDialog(
