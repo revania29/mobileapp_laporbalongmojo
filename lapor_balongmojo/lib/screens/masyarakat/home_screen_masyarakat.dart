@@ -49,11 +49,11 @@ class _HomeScreenMasyarakatState extends State<HomeScreenMasyarakat> {
                     TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Batal')),
                     TextButton(
                       onPressed: () async {
-                        Navigator.of(ctx).pop();
                         final rootNavigator = Navigator.of(context);
                         final scaffoldContext = context;
+                        Navigator.of(ctx).pop();
                         await Provider.of<AuthProvider>(context, listen: false).logout();
-                        if (!mounted) return;
+                        if (!scaffoldContext.mounted) return;
                         UiUtils.showSuccess(scaffoldContext, "Anda berhasil keluar. Sampai jumpa!");
                         rootNavigator.pushNamedAndRemoveUntil(LoginScreen.routeName, (route) => false);
                       },

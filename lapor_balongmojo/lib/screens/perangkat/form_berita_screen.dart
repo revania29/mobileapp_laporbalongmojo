@@ -24,7 +24,6 @@ class _FormBeritaScreenState extends State<FormBeritaScreen> {
   Future<void> _pickImage(ImageSource source) async {
     final returnedImage = await ImagePicker().pickImage(source: source);
     if (returnedImage == null) return;
-    
     setState(() {
       _selectedImage = File(returnedImage.path);
     });
@@ -97,8 +96,8 @@ class _FormBeritaScreenState extends State<FormBeritaScreen> {
 
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.red[50],
-                  border: Border.all(color: Colors.red.withOpacity(0.5)),
+                  color: Colors.red.withValues(alpha: 0.1),
+                  border: Border.all(color: Colors.red),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: SwitchListTile(
@@ -111,7 +110,11 @@ class _FormBeritaScreenState extends State<FormBeritaScreen> {
                     style: TextStyle(fontSize: 12)
                   ),
                   value: _isDarurat,
-                  activeColor: Colors.red,
+
+                  activeTrackColor: Colors.red.withValues(alpha: 0.5),
+                  
+                  thumbColor: WidgetStateProperty.all(Colors.red),
+                  
                   onChanged: (val) {
                     setState(() {
                       _isDarurat = val;
@@ -119,7 +122,6 @@ class _FormBeritaScreenState extends State<FormBeritaScreen> {
                   },
                 ),
               ),
-              // -----------------------------------------
 
               const SizedBox(height: 20),
               
