@@ -47,6 +47,12 @@ class _DashboardScreenPerangkatState extends State<DashboardScreenPerangkat> {
         backgroundColor: Colors.teal,
         actions: [
           IconButton(
+            icon: const Icon(Icons.info_outline),
+            onPressed: () {
+              Navigator.of(context).pushNamed('/about');
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.exit_to_app),
             onPressed: () {
               showDialog(
