@@ -1,16 +1,16 @@
-import 'package:flutter/material.dart';
 import 'dart:io';
-import 'package:lapor_balongmojo/services/api_service.dart';
+import 'package:flutter/material.dart';
 import 'package:lapor_balongmojo/models/berita_model.dart'; 
+import 'package:lapor_balongmojo/services/api_service.dart';
 
 class BeritaProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
   
-  bool _isLoading = false;
   List<BeritaModel> _listBerita = []; 
+  bool _isLoading = false;
 
-  bool get isLoading => _isLoading;
   List<BeritaModel> get listBerita => _listBerita;
+  bool get isLoading => _isLoading;
 
   Future<void> postBerita(String judul, String isi, File image, bool isDarurat) async {
     _isLoading = true;
@@ -31,7 +31,10 @@ class BeritaProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      _listBerita = await _apiService.getBerita();
+      final List<dynamic> rawData = await _apiService.getBerita();
+
+      _listBerita = rawData.map((item) => BeritaModel.fromJson(item)).toList();
+      
     } catch (e) {
       debugPrint("Error fetch berita: $e");
       _listBerita = [];

@@ -6,7 +6,7 @@ import 'package:lapor_balongmojo/screens/perangkat/form_berita_screen.dart';
 import 'package:lapor_balongmojo/screens/perangkat/list_laporan_admin_screen.dart';
 import 'package:lapor_balongmojo/screens/perangkat/verifikasi_warga_screen.dart';
 import 'package:lapor_balongmojo/services/api_service.dart';
-import 'package:lapor_balongmojo/utils/ui_utils.dart'; // Pastikan ini di-import
+import 'package:lapor_balongmojo/utils/ui_utils.dart';
 
 class DashboardScreenPerangkat extends StatefulWidget {
   static const routeName = '/dashboard-perangkat';
@@ -58,23 +58,12 @@ class _DashboardScreenPerangkatState extends State<DashboardScreenPerangkat> {
                     TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Batal')),
                     TextButton(
                       onPressed: () async {
-                        // 1. Tutup Dialog dulu
-                        Navigator.of(ctx).pop();
-
-                        // 2. Simpan referensi navigator & context sebelum async gap
                         final rootNavigator = Navigator.of(context);
                         final scaffoldContext = context; 
-
-                        // 3. Proses Logout Provider
+                        Navigator.of(ctx).pop();
                         await Provider.of<AuthProvider>(context, listen: false).logout();
-                        
-                        // 4. Cek mounted
-                        if (!mounted) return;
-                        
-                        // 5. Tampilkan Pesan Sukses (Fitur Hari 26)
+                        if (!scaffoldContext.mounted) return;
                         UiUtils.showSuccess(scaffoldContext, "Logout Berhasil. Sampai jumpa Admin!");
-
-                        // 6. Pindah ke Halaman Login
                         rootNavigator.pushNamedAndRemoveUntil(
                           LoginScreen.routeName, 
                           (route) => false
