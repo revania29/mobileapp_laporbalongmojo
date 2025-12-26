@@ -1,91 +1,137 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:lapor_balongmojo/services/fcm_service.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:provider/provider.dart';
+import 'package:lapor_balongmojo/firebase_options.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
-// Providers
+// Import Providers
 import 'package:lapor_balongmojo/providers/auth_provider.dart';
 import 'package:lapor_balongmojo/providers/laporan_provider.dart';
-import 'package:lapor_balongmojo/providers/berita_provider.dart';
 
-// Screens
+// Import Screens
 import 'package:lapor_balongmojo/screens/auth/login_screen.dart';
 import 'package:lapor_balongmojo/screens/auth/register_masyarakat_screen.dart';
-import 'package:lapor_balongmojo/screens/splash_screen.dart';
-import 'package:lapor_balongmojo/screens/masyarakat/home_screen_masyarakat.dart';
-import 'package:lapor_balongmojo/screens/masyarakat/form_laporan_screen.dart';
-import 'package:lapor_balongmojo/screens/masyarakat/riwayat_laporan_screen.dart';
-import 'package:lapor_balongmojo/screens/masyarakat/detail_berita_screen.dart';
-import 'package:lapor_balongmojo/screens/perangkat/dashboard_screen_perangkat.dart';
-import 'package:lapor_balongmojo/screens/perangkat/list_laporan_admin_screen.dart';
-import 'package:lapor_balongmojo/screens/perangkat/detail_laporan_screen.dart';
-import 'package:lapor_balongmojo/screens/perangkat/form_berita_screen.dart';
-import 'package:lapor_balongmojo/screens/perangkat/verifikasi_warga_screen.dart';
-import 'package:lapor_balongmojo/screens/common/about_screen.dart';
+import 'package:lapor_balongmojo/screens/masyarakat/profile_screen.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+const AndroidNotificationChannel channel = AndroidNotificationChannel(
+  'high_importance_channel',
+  'High Importance Notifications',
+  description: 'Channel ini digunakan untuk notifikasi penting.',
+  importance: Importance.max,
+  playSound: true,
+);
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // 1. Inisialisasi Firebase & FCM
-  try {
-    await Firebase.initializeApp();
-    final fcmService = FcmService();
-    await fcmService.init();
-  } catch (e) {
-    debugPrint("Warning: Firebase/FCM failed to init: $e");
-  }
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await initializeDateFormatting('id_ID', null);
 
-  runApp(const MyApp());
-}
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  // Setup Notifikasi Lokal
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
 
-  @override
-  Widget build(BuildContext context) {
-    return MultiProvider(
+  await flutterLocalNotificationsPlugin.initialize(
+    const InitializationSettings(android: initializationSettingsAndroid),
+    onDidReceiveNotificationResponse: (NotificationResponse response) {
+      // Logika ketika notifikasi diklik
+    },
+  );
+
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(channel);
+
+  await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
+
+  runApp(
+    MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => LaporanProvider()),
-        ChangeNotifierProvider(create: (_) => BeritaProvider()),
       ],
-      child: MaterialApp(
-        title: 'Lapor Balongmojo',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          primarySwatch: Colors.indigo,
-          scaffoldBackgroundColor: Colors.grey[50],
-          useMaterial3: false,
-          inputDecorationTheme: InputDecorationTheme(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+      child: const MyApp(),
+    ),
+  );
+}
+
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    
+    // Minta Izin Notifikasi
+    FirebaseMessaging.instance.requestPermission();
+
+    // Listen Notifikasi saat aplikasi Terbuka (Foreground)
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      RemoteNotification? notification = message.notification;
+      AndroidNotification? android = message.notification?.android;
+
+      if (notification != null && android != null) {
+        flutterLocalNotificationsPlugin.show(
+          notification.hashCode,
+          notification.title,
+          notification.body,
+          NotificationDetails(
+            android: AndroidNotificationDetails(
+              channel.id,
+              channel.name,
+              channelDescription: channel.description,
+              icon: '@mipmap/ic_launcher',
+              importance: Importance.max,
+              priority: Priority.high,
+              playSound: true,
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
-        ),
-        
-        initialRoute: SplashScreen.routeName, 
-        
-        routes: {
-          SplashScreen.routeName: (ctx) => const SplashScreen(),
-          LoginScreen.routeName: (ctx) => const LoginScreen(),
-          RegisterMasyarakatScreen.routeName: (ctx) => const RegisterMasyarakatScreen(),
-          AboutScreen.routeName: (ctx) => const AboutScreen(),
-          
-          // Masyarakat
-          HomeScreenMasyarakat.routeName: (ctx) => const HomeScreenMasyarakat(),
-          FormLaporanScreen.routeName: (ctx) => const FormLaporanScreen(),
-          RiwayatLaporanScreen.routeName: (ctx) => const RiwayatLaporanScreen(),
-          DetailBeritaScreen.routeName: (ctx) => const DetailBeritaScreen(),
-          
-          // Admin / Perangkat
-          DashboardScreenPerangkat.routeName: (ctx) => const DashboardScreenPerangkat(),
-          ListLaporanAdminScreen.routeName: (ctx) => const ListLaporanAdminScreen(),
-          DetailLaporanScreen.routeName: (ctx) => const DetailLaporanScreen(),
-          FormBeritaScreen.routeName: (ctx) => const FormBeritaScreen(),
-          VerifikasiWargaScreen.routeName: (ctx) => const VerifikasiWargaScreen(),
-        },
+          payload: message.data.toString(),
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Lapor Balongmojo',
+      debugShowCheckedModeBanner: false,
+      navigatorKey: navigatorKey,
+      theme: ThemeData(
+        useMaterial3: true,
+        fontFamily: 'Poppins',
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF7C4DFF)),
       ),
+      // Gunakan initialRoute dan routes agar navigasi antar halaman lancar
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const LoginScreen(),
+        RegisterMasyarakatScreen.routeName: (context) => const RegisterMasyarakatScreen(),
+        '/profile': (context) => const ProfileScreen(), // Route profile Anda
+      },
     );
   }
 }

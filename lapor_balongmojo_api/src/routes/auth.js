@@ -2,93 +2,87 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const db = require('../config/database');
+const db = require('../config/database'); 
 
+// --- REGISTRASI MASYARAKAT ---
+router.post('/register/masyarakat', async (req, res) => {
+  try {
+    const { nama_lengkap, email, no_telepon, password } = req.body;
 
-router.post('/register', async (req, res) => {
-
-    const { nama_lengkap, email, password, no_telepon } = req.body;
-
-
-    if (!nama_lengkap || !email || !password || !no_telepon) {
-        return res.status(400).json({ message: 'Semua kolom wajib diisi!' });
+    if (!nama_lengkap || !email || !password) {
+      return res.status(400).json({ message: 'Nama, Email, dan Password wajib diisi.' });
     }
 
-    try {
-
-        const [existingUsers] = await db.execute(
-            'SELECT * FROM users WHERE email = ? OR no_telepon = ?',
-            [email, no_telepon]
-        );
-
-        if (existingUsers.length > 0) {
-            return res.status(400).json({ message: 'Email atau No. Telepon sudah terdaftar!' });
-        }
-
-
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-
-        await db.execute(
-            `INSERT INTO users (nama_lengkap, email, password_hash, no_telepon, role, status_akun) 
-             VALUES (?, ?, ?, ?, 'masyarakat', 'pending')`,
-            [nama_lengkap, email, hashedPassword, no_telepon]
-        );
-
-        res.status(201).json({ message: 'Registrasi berhasil! Silakan login.' });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Terjadi kesalahan server' });
+    const [existing] = await db.execute(
+      'SELECT id FROM users WHERE email = ? OR no_telepon = ?',
+      [email, no_telepon]
+    );
+    
+    if (existing.length > 0) {
+      return res.status(400).json({ message: 'Email atau No Telepon sudah terdaftar.' });
     }
+
+    const salt = await bcrypt.genSalt(10);
+    const password_hash = await bcrypt.hash(password, salt);
+
+    await db.execute(
+      'INSERT INTO users (nama_lengkap, email, no_telepon, password_hash, role, is_verified) VALUES (?, ?, ?, ?, ?, ?)',
+      [nama_lengkap, email, no_telepon, password_hash, 'masyarakat', false] 
+    );
+
+    res.status(201).json({ message: 'Registrasi berhasil. Menunggu verifikasi admin.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
-
+// --- LOGIN ---
 router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
+  try {
+    const { email, password, fcm_token } = req.body;
 
-    try {
-
-        const [users] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
-
-        if (users.length === 0) {
-            return res.status(400).json({ message: 'Email tidak ditemukan!' });
-        }
-
-        const user = users[0];
-
-
-        const isMatch = await bcrypt.compare(password, user.password_hash);
-
-        if (!isMatch) {
-            return res.status(400).json({ message: 'Password salah!' });
-        }
-
-
-        const token = jwt.sign(
-            { id: user.id, role: user.role },
-            process.env.JWT_SECRET,
-            { expiresIn: '7d' }
-        );
-
-
-        res.json({
-            message: 'Login berhasil',
-            token: token,
-            user: {
-                id: user.id,
-                nama: user.nama_lengkap,
-                email: user.email,
-                role: user.role,
-                status: user.status_akun
-            }
-        });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Terjadi kesalahan server' });
+    const [users] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
+    if (users.length === 0) {
+      return res.status(401).json({ message: 'Email atau password salah.' });
     }
+
+    const user = users[0];
+
+    // Cek verifikasi masyarakat
+    if (user.role === 'masyarakat' && !user.is_verified) {
+      return res.status(403).json({ message: 'Akun belum diverifikasi oleh admin.' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Email atau password salah.' });
+    }
+
+    // Update FCM Token jika ada
+    if (fcm_token) {
+      await db.execute('UPDATE users SET fcm_token = ? WHERE id = ?', [fcm_token, user.id]);
+    }
+
+    const token = jwt.sign(
+      { id: user.id, role: user.role },
+      process.env.JWT_SECRET || 'secret_key_anda',
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      message: 'Login berhasil',
+      token: token,
+      user: {
+        id: user.id,
+        nama: user.nama_lengkap,
+        email: user.email,
+        role: user.role,
+        no_telepon: user.no_telepon
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 module.exports = router;

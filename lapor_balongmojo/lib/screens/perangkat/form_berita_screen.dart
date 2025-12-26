@@ -1,13 +1,14 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart';
-import 'package:lapor_balongmojo/providers/berita_provider.dart';
-import 'package:lapor_balongmojo/widgets/custom_textfield.dart';
+import 'package:lapor_balongmojo/services/api_service.dart';
+import 'package:lapor_balongmojo/models/berita_model.dart';
+import 'package:lapor_balongmojo/widgets/glass_card.dart';
 
 class FormBeritaScreen extends StatefulWidget {
-  static const routeName = '/form-berita';
-  const FormBeritaScreen({super.key});
+  final BeritaModel? beritaToEdit;
+
+  const FormBeritaScreen({super.key, this.beritaToEdit});
 
   @override
   State<FormBeritaScreen> createState() => _FormBeritaScreenState();
@@ -18,166 +19,331 @@ class _FormBeritaScreenState extends State<FormBeritaScreen> {
   final _judulController = TextEditingController();
   final _isiController = TextEditingController();
   
-  File? _selectedImage;
-  bool _isDarurat = false; 
+  bool _isPeringatanDarurat = false;
+  bool _isLoading = false;
+  
+  File? _pickedImage;
+  String? _existingImageUrl;
+  
+  final ApiService _apiService = ApiService();
+  final ImagePicker _picker = ImagePicker();
 
+  @override
+  void initState() {
+    super.initState();
+    if (widget.beritaToEdit != null) {
+      _judulController.text = widget.beritaToEdit!.judul;
+      _isiController.text = widget.beritaToEdit!.isi;
+      _isPeringatanDarurat = widget.beritaToEdit!.isPeringatanDarurat;
+      _existingImageUrl = widget.beritaToEdit!.gambarUrl;
+    }
+  }
+
+  // --- PILIH GAMBAR ---
   Future<void> _pickImage(ImageSource source) async {
-    final returnedImage = await ImagePicker().pickImage(source: source);
-    if (returnedImage == null) return;
+    try {
+      final XFile? image = await _picker.pickImage(source: source, imageQuality: 80);
+      if (image == null) return;
+      
+      final File imageFile = File(image.path);
+      final int size = await imageFile.length();
+      if (size > 5 * 1024 * 1024) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Ukuran gambar max 5MB"), backgroundColor: Colors.red));
+        return;
+      }
+
+      setState(() {
+        _pickedImage = imageFile;
+      });
+    } catch (e) {
+      print("Error pick image: $e");
+    }
+  }
+
+  // --- FUNGSI HAPUS GAMBAR ---
+  void _clearImage() {
     setState(() {
-      _selectedImage = File(returnedImage.path);
+      _pickedImage = null;
+      _existingImageUrl = null;
     });
   }
 
+  // --- SUBMIT ---
   Future<void> _submitBerita() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Harap sertakan gambar sampul berita!')),
-      );
-      return;
-    }
+
+    setState(() => _isLoading = true);
 
     try {
-      await Provider.of<BeritaProvider>(context, listen: false).postBerita(
-        _judulController.text,
-        _isiController.text,
-        _selectedImage!,
-        _isDarurat, 
-      );
+      String? finalImageUrl = _existingImageUrl;
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Berita Berhasil Dipublikasikan!')),
-      );
-      Navigator.of(context).pop(); 
+      if (_pickedImage != null) {
+        finalImageUrl = await _apiService.uploadImage(_pickedImage!);
+      }
+
+      if (widget.beritaToEdit != null) {
+        await _apiService.updateBerita(
+          widget.beritaToEdit!.id,
+          _judulController.text,
+          _isiController.text,
+          finalImageUrl,
+          _isPeringatanDarurat,
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Berita diperbarui!'), backgroundColor: Colors.green));
+      } else {
+        await _apiService.createBerita(
+          _judulController.text,
+          _isiController.text,
+          finalImageUrl,
+          _isPeringatanDarurat,
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Berita diterbitkan!'), backgroundColor: Colors.green));
+      }
+
+      Navigator.of(context).pop();
+
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal: $e'), backgroundColor: Colors.red));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = Provider.of<BeritaProvider>(context).isLoading;
+    final bool isEdit = widget.beritaToEdit != null;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tulis Berita Desa'),
-        backgroundColor: Colors.teal,
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft, 
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF2E004F), Color(0xFF6A0059)], 
+        ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              CustomTextField(
-                controller: _judulController, 
-                labelText: 'Judul Berita', 
-                icon: Icons.title
-              ),
-              const SizedBox(height: 10),
-              
-              TextFormField(
-                controller: _isiController,
-                maxLines: 8,
-                decoration: InputDecoration(
-                  labelText: 'Isi Berita Lengkap',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  alignLabelWithHint: true,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: Text(isEdit ? "EDIT BERITA" : "BUAT BERITA BARU", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1)),
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                
+                // JUDUL
+                GlassCard(
+                  opacity: 0.15,
+                  color: Colors.black,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+                  child: TextFormField(
+                    controller: _judulController,
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                    decoration: const InputDecoration(
+                      hintText: 'Judul Berita',
+                      hintStyle: TextStyle(color: Colors.white54),
+                      icon: Icon(Icons.title, color: Colors.white70),
+                      border: InputBorder.none,
+                    ),
+                    validator: (val) => val!.isEmpty ? 'Judul wajib diisi' : null,
+                  ),
                 ),
-                validator: (val) => val!.isEmpty ? 'Isi berita wajib diisi' : null,
-              ),
-              const SizedBox(height: 10),
+                const SizedBox(height: 20),
 
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.1),
-                  border: Border.all(color: Colors.red),
-                  borderRadius: BorderRadius.circular(12),
+                // DARURAT SWITCH
+                GlassCard(
+                  opacity: _isPeringatanDarurat ? 0.4 : 0.15,
+                  color: _isPeringatanDarurat ? Colors.red.shade900 : Colors.black,
+                  borderColor: _isPeringatanDarurat ? Colors.redAccent : null,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  child: SwitchListTile(
+                    title: const Text("Peringatan Darurat?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    subtitle: Text(
+                      _isPeringatanDarurat ? "Notifikasi bahaya akan dikirim!" : "Berita informasi biasa.",
+                      style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12),
+                    ),
+                    value: _isPeringatanDarurat,
+                    activeColor: Colors.white,
+                    activeTrackColor: Colors.redAccent,
+                    secondary: Icon(Icons.warning_amber_rounded, color: _isPeringatanDarurat ? Colors.white : Colors.white54, size: 30),
+                    onChanged: (val) {
+                      setState(() => _isPeringatanDarurat = val);
+                    },
+                  ),
                 ),
-                child: SwitchListTile(
-                  title: const Text(
-                    "Peringatan Darurat?", 
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)
-                  ),
-                  subtitle: const Text(
-                    "Centang ini jika berita bersifat bahaya/urgent. Notifikasi akan dikirim ke semua warga.", 
-                    style: TextStyle(fontSize: 12)
-                  ),
-                  value: _isDarurat,
+                const SizedBox(height: 20),
 
-                  activeTrackColor: Colors.red.withValues(alpha: 0.5),
-                  
-                  thumbColor: WidgetStateProperty.all(Colors.red),
-                  
-                  onChanged: (val) {
-                    setState(() {
-                      _isDarurat = val;
-                    });
-                  },
+                // ISI BERITA
+                GlassCard(
+                  opacity: 0.15,
+                  color: Colors.black,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+                  child: TextFormField(
+                    controller: _isiController,
+                    maxLines: 8,
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                    decoration: const InputDecoration(
+                      hintText: 'Tulis isi berita...',
+                      hintStyle: TextStyle(color: Colors.white54),
+                      icon: Icon(Icons.article_outlined, color: Colors.white70),
+                      border: InputBorder.none,
+                    ),
+                    validator: (val) => val!.isEmpty ? 'Isi berita wajib diisi' : null,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 25),
 
-              const SizedBox(height: 20),
-              
-              Container(
-                height: 200,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(12),
+                // --- UPLOAD FOTO ---
+                GlassCard(
+                  opacity: 0.1,
+                  color: Colors.white,
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      const Text("Lampirkan Foto", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 15),
+                      
+                      GestureDetector(
+                        onTap: () => _pickImage(ImageSource.gallery),
+                        child: Container(
+                          height: 180,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.white30, width: 2, style: BorderStyle.solid),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: _buildImagePreview(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      
+                      // ✅ PERBAIKAN LAYOUT TOMBOL (MENGGUNAKAN COLUMN)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Baris 1: Kamera & Galeri (Pakai Expanded agar rata)
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildMediaButton(Icons.camera_alt_rounded, "Kamera", ImageSource.camera),
+                              ),
+                              const SizedBox(width: 15),
+                              Expanded(
+                                child: _buildMediaButton(Icons.photo_library_rounded, "Galeri", ImageSource.gallery),
+                              ),
+                            ],
+                          ),
+                          
+                          // Baris 2: Tombol Hapus (Muncul di bawah jika ada foto)
+                          if (_pickedImage != null || _existingImageUrl != null) ...[
+                            const SizedBox(height: 15), // Jarak vertikal
+                            _buildMediaButton(Icons.delete_forever, "Hapus Foto", null, isDelete: true),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                child: _selectedImage != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.file(_selectedImage!, fit: BoxFit.cover),
-                      )
-                    : const Center(child: Text('Belum ada foto sampul', style: TextStyle(color: Colors.grey))),
-              ),
-              const SizedBox(height: 10),
-              
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: () => _pickImage(ImageSource.camera),
-                    icon: const Icon(Icons.camera_alt),
-                    label: const Text('Kamera'),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+                const SizedBox(height: 35),
+
+                // TOMBOL SUBMIT
+                Container(
+                  height: 55,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(30),
+                    gradient: LinearGradient(
+                      colors: isEdit 
+                          ? [Colors.orange.shade800, Colors.deepOrange]
+                          : [const Color(0xFF7B1FA2), const Color(0xFF4A148C)], 
+                    ),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 5))
+                    ],
                   ),
-                  ElevatedButton.icon(
-                    onPressed: () => _pickImage(ImageSource.gallery),
-                    icon: const Icon(Icons.photo_library),
-                    label: const Text('Galeri'),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _submitBerita,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    ),
+                    child: _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : Text(
+                            isEdit ? 'SIMPAN PERUBAHAN' : 'TERBITKAN BERITA',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5),
+                          ),
                   ),
-                ],
-              ),
-              
-              const SizedBox(height: 30),
-              
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: isLoading ? null : _submitBerita,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('PUBLIKASIKAN BERITA', style: TextStyle(fontSize: 16)),
                 ),
-              ),
-            ],
+                const SizedBox(height: 30),
+              ],
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildImagePreview() {
+    if (_pickedImage != null) {
+      return Image.file(_pickedImage!, fit: BoxFit.cover);
+    } else if (_existingImageUrl != null && _existingImageUrl!.isNotEmpty) {
+      return Image.network(
+        '${ApiService.publicBaseUrl}$_existingImageUrl',
+        fit: BoxFit.cover,
+        errorBuilder: (ctx, err, stack) => const Center(child: Icon(Icons.broken_image, color: Colors.white54)),
+      );
+    } else {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: const [
+          Icon(Icons.add_photo_alternate_rounded, size: 50, color: Colors.white38),
+          SizedBox(height: 10),
+          Text("Preview Foto", style: TextStyle(color: Colors.white54)),
+        ],
+      );
+    }
+  }
+
+  // Widget Tombol Media
+  Widget _buildMediaButton(IconData icon, String label, ImageSource? source, {bool isDelete = false}) {
+    return ElevatedButton.icon(
+      onPressed: () {
+        if (isDelete) {
+          _clearImage();
+        } else {
+          _pickImage(source!);
+        }
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isDelete ? Colors.red.withOpacity(0.2) : Colors.white.withOpacity(0.15),
+        foregroundColor: isDelete ? Colors.redAccent : Colors.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        side: BorderSide(color: isDelete ? Colors.redAccent.withOpacity(0.5) : Colors.white24),
+        padding: const EdgeInsets.symmetric(vertical: 12), // Padding horizontal dihapus
+      ),
+      icon: Icon(icon, size: 18),
+      label: Text(label, textAlign: TextAlign.center),
     );
   }
 }

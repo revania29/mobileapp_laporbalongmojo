@@ -1,133 +1,132 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const multer = require('multer');
-const path = require('path');
-const { verifyToken, isPerangkat } = require('../middleware/auth'); 
+const { verifyToken, isPerangkat, isMasyarakat } = require('../middleware/auth');
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'public/uploads');
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname));
+// ✅ Import Helper Notifikasi (Pastikan file ini ada)
+const { kirimNotifikasiLaporanBaru } = require('../utils/fcm_helper'); 
+
+// =======================================================================
+// 1. BUAT LAPORAN BARU (Oleh Masyarakat) -> Memicu Notifikasi
+// =======================================================================
+router.post('/', [verifyToken, isMasyarakat], async (req, res) => {
+  try {
+    const { judul, deskripsi, foto_url } = req.body; 
+    const user_id = req.user.id; 
+
+    // A. Simpan Laporan
+    await db.execute(
+      'INSERT INTO laporan (user_id, judul, deskripsi, foto_url, status) VALUES (?, ?, ?, ?, ?)',
+      [user_id, judul, deskripsi, foto_url, 'belum terdaftar'] 
+    );
+
+    // B. Logika Kirim Notifikasi
+    const [userRows] = await db.execute('SELECT nama_lengkap FROM users WHERE id = ?', [user_id]);
+    const namaPelapor = userRows.length > 0 ? userRows[0].nama_lengkap : 'Warga';
+
+    const [perangkatRows] = await db.execute(
+      "SELECT fcm_token FROM users WHERE role = 'perangkat' AND fcm_token IS NOT NULL"
+    );
+
+    if (perangkatRows.length > 0) {
+      const listToken = perangkatRows.map(row => row.fcm_token);
+      console.log(`📢 Mengirim notifikasi ke ${listToken.length} perangkat desa...`);
+      // Panggil helper notifikasi (pastikan tidak error jika helper belum sempurna)
+      kirimNotifikasiLaporanBaru(judul, namaPelapor, listToken).catch(err => console.log("Gagal kirim notif:", err));
+    } else {
+      console.log("⚠️ Tidak ada token perangkat desa yang ditemukan.");
     }
+
+    res.status(201).json({ message: 'Laporan berhasil dibuat dan notifikasi dikirim.' });
+
+  } catch (err) {
+    console.error("Error posting laporan:", err);
+    res.status(500).json({ message: err.message });
+  }
 });
 
-const upload = multer({ 
-    storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 },
-    fileFilter: (req, file, cb) => {
-        const filetypes = /jpeg|jpg|png/;
-        const mimetype = filetypes.test(file.mimetype);
-        const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-        if (mimetype && extname) {
-            return cb(null, true);
-        }
-        cb(new Error('Hanya boleh upload gambar (jpg/jpeg/png)!'));
-    }
-});
-
-router.post('/', verifyToken, upload.single('image'), async (req, res) => {
-    try {
-        const { judul, deskripsi } = req.body;
-        const userId = req.user.id; 
-        
-        const fotoUrl = req.file ? `/uploads/${req.file.filename}` : null;
-
-        if (!judul || !deskripsi) {
-            return res.status(400).json({ message: 'Judul dan Deskripsi wajib diisi!' });
-        }
-
-        await db.query(
-            `INSERT INTO laporan (user_id, judul, deskripsi, foto_url) VALUES (?, ?, ?, ?)`,
-            [userId, judul, deskripsi, fotoUrl]
-        );
-
-        res.status(201).json({ message: 'Laporan berhasil dikirim!' });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Gagal mengirim laporan', error: error.message });
-    }
-});
-
+// =======================================================================
+// 2. AMBIL DAFTAR LAPORAN (Perangkat & Masyarakat)
+// =======================================================================
 router.get('/', verifyToken, async (req, res) => {
-    try {
-        const userId = req.user.id;
+  try {
+    const { id, role } = req.user;
+    let query = '';
+    let params = [];
 
-        const [rows] = await db.query(
-            `SELECT * FROM laporan WHERE user_id = ? ORDER BY created_at DESC`,
-            [userId]
-        );
-
-        res.json(rows);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Gagal mengambil data laporan' });
+    if (role === 'perangkat' || role === 'admin') {
+      // Perangkat melihat SEMUA laporan
+      query = `
+        SELECT l.*, u.nama_lengkap AS pelapor 
+        FROM laporan l 
+        LEFT JOIN users u ON l.user_id = u.id 
+        ORDER BY l.created_at DESC
+      `;
+    } else {
+      // Masyarakat hanya melihat laporan sendiri
+      query = 'SELECT * FROM laporan WHERE user_id = ? ORDER BY created_at DESC';
+      params.push(id);
     }
+
+    const [laporan] = await db.execute(query, params);
+    res.json(laporan);
+
+  } catch (err) {
+    console.error("Error getting laporan:", err);
+    res.status(500).json({ message: err.message });
+  }
 });
 
-router.get('/admin/all', [verifyToken, isPerangkat], async (req, res) => {
-    try {
-        const query = `
-            SELECT l.*, u.nama_lengkap as pelapor, u.no_telepon 
-            FROM laporan l 
-            JOIN users u ON l.user_id = u.id 
-            ORDER BY l.created_at DESC
-        `;
-        
-        const [rows] = await db.query(query);
-        res.json(rows);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Gagal memuat semua laporan.' });
-    }
-});
-
-
+// =======================================================================
+// 3. UPDATE STATUS LAPORAN (PERBAIKAN UTAMA DISINI)
+// =======================================================================
 router.put('/:id', [verifyToken, isPerangkat], async (req, res) => {
-    try {
-        const laporanId = req.params.id;
-        const { status } = req.body; 
+  try {
+    const { status } = req.body;
+    const { id } = req.params;
 
-        const validStatuses = ['menunggu', 'proses', 'selesai', 'ditolak'];
-        if (!validStatuses.includes(status)) {
-            return res.status(400).json({ message: 'Status tidak valid!' });
-        }
-
-        const [result] = await db.query(
-            'UPDATE laporan SET status = ? WHERE id = ?',
-            [status, laporanId]
-        );
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Laporan tidak ditemukan.' });
-        }
-
-        res.json({ message: `Status berhasil diubah menjadi ${status}` });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Gagal update status laporan.' });
+    // ✅ PERBAIKAN: Saya tambahkan 'tolak' ke dalam daftar yang diizinkan.
+    // Backend sekarang menerima: 'belum terdaftar', 'diproses', 'selesai', 'tolak', 'ditolak'
+    const validStatus = ['belum terdaftar', 'terverifikasi', 'diproses', 'selesai', 'tolak', 'ditolak'];
+    
+    if (!validStatus.includes(status)) {
+      console.log(`❌ Backend menolak status: '${status}'. Yang diterima: ${validStatus.join(', ')}`);
+      return res.status(400).json({ message: 'Status tidak valid.' });
     }
+
+    await db.execute(
+      'UPDATE laporan SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [status, id]
+    );
+
+    res.json({ message: 'Status laporan berhasil diperbarui.' });
+  } catch (err) {
+    console.error("Error update status:", err);
+    res.status(500).json({ message: err.message });
+  }
 });
 
-router.get('/stats', [verifyToken, isPerangkat], async (req, res) => {
-    try {
-        const query = `
-            SELECT 
-                SUM(CASE WHEN status = 'menunggu' THEN 1 ELSE 0 END) as menunggu,
-                SUM(CASE WHEN status = 'proses' THEN 1 ELSE 0 END) as proses,
-                SUM(CASE WHEN status = 'selesai' THEN 1 ELSE 0 END) as selesai
-            FROM laporan
-        `;
-        const [rows] = await db.query(query);
-        res.json(rows[0]);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Gagal mengambil statistik.' });
+// =======================================================================
+// 4. HAPUS LAPORAN (Untuk Tombol Tong Sampah di Flutter)
+// =======================================================================
+router.delete('/:id', [verifyToken, isPerangkat], async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Cek apakah laporan ada (opsional, biar aman)
+    const [existing] = await db.execute('SELECT * FROM laporan WHERE id = ?', [id]);
+    if (existing.length === 0) {
+      return res.status(404).json({ message: 'Laporan tidak ditemukan.' });
     }
+
+    // Eksekusi Hapus
+    await db.execute('DELETE FROM laporan WHERE id = ?', [id]);
+
+    res.json({ message: 'Laporan berhasil dihapus.' });
+  } catch (err) {
+    console.error("Error deleting laporan:", err);
+    res.status(500).json({ message: err.message });
+  }
 });
 
 module.exports = router;

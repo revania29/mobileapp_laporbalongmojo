@@ -4,39 +4,36 @@ class CustomTextField extends StatelessWidget {
   final TextEditingController controller;
   final String labelText;
   final IconData icon;
-  final bool isPassword;
-  final TextInputType keyboardType;
+  final bool isObscure;
+  final String? Function(String?)? validator;
+  final TextInputType? keyboardType;
 
   const CustomTextField({
     super.key,
     required this.controller,
     required this.labelText,
     required this.icon,
-    this.isPassword = false,
-    this.keyboardType = TextInputType.text,
+    this.isObscure = false,
+    this.validator,
+    this.keyboardType,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Kita hapus Container manual, dan gunakan styling bawaan Theme di main.dart
+    // agar lebih konsisten dan rapi.
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: TextFormField(
         controller: controller,
-        obscureText: isPassword,
+        obscureText: isObscure,
         keyboardType: keyboardType,
+        validator: validator,
         decoration: InputDecoration(
-          prefixIcon: Icon(icon),
           labelText: labelText,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          prefixIcon: Icon(icon),
+          // Style lainnya sudah otomatis dari main.dart
         ),
-        validator: (value) {
-          if (value == null || value.isEmpty) {
-            return '$labelText tidak boleh kosong';
-          }
-          return null;
-        },
       ),
     );
   }
