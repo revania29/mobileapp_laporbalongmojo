@@ -1,72 +1,51 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:lapor_balongmojo/models/laporan_model.dart';
 import 'package:lapor_balongmojo/services/api_service.dart';
 
+enum LaporanStatus { initial, loading, loaded, error }
+
 class LaporanProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
-  
-  List<LaporanModel> _riwayatLaporan = [];
-  List<LaporanModel> _allLaporanAdmin = [];
-  bool _isLoading = false;
 
-  List<LaporanModel> get riwayatLaporan => _riwayatLaporan;
-  List<LaporanModel> get allLaporanAdmin => _allLaporanAdmin;
-  bool get isLoading => _isLoading;
+  List<LaporanModel> _laporanList = [];
+  int _totalLaporan = 0;
+  LaporanStatus _status = LaporanStatus.initial;
+  String _errorMessage = '';
 
-  int get countMenunggu => _allLaporanAdmin.where((l) => l.status == 'menunggu').length;
-  int get countProses => _allLaporanAdmin.where((l) => l.status == 'proses').length;
-  int get countSelesai => _allLaporanAdmin.where((l) => l.status == 'selesai').length;
+  List<LaporanModel> get laporanList => _laporanList;
+  int get totalLaporan => _totalLaporan;
+  LaporanStatus get status => _status;
+  bool get isLoading => _status == LaporanStatus.loading;
 
-  Future<void> tambahLaporan(String judul, String deskripsi, File image) async {
-    _isLoading = true;
-    notifyListeners();
+  // Fungsi Utama: Ambil Data dari API
+  Future<void> fetchLaporan() async {
+    _status = LaporanStatus.loading;
+    notifyListeners(); // Beritahu UI untuk muter loading
+
     try {
-      await _apiService.postLaporan(judul, deskripsi, image);
-      await fetchRiwayatLaporan(); 
-    } catch (e) {
-      debugPrint("Error tambah laporan: $e");
-      rethrow;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  Future<void> fetchRiwayatLaporan() async {
-    _isLoading = true;
-    notifyListeners();
-    try {
-      final List<dynamic> rawData = await _apiService.getLaporan();
-      _riwayatLaporan = rawData.map((item) => LaporanModel.fromJson(item)).toList();
+      // Ambil List Laporan
+      final data = await _apiService.getLaporan();
       
+      // (Opsional) Jika backend support pagination/total count terpisah:
+      // final total = await _apiService.getTotalLaporan(); 
+
+      _laporanList = data;
+      _totalLaporan = data.length; 
+      _status = LaporanStatus.loaded;
     } catch (e) {
-      debugPrint("Error fetch laporan warga: $e");
-      _riwayatLaporan = [];
+      _status = LaporanStatus.error;
+      _errorMessage = e.toString();
+      _laporanList = [];
     }
-    _isLoading = false;
-    notifyListeners();
+    
+    notifyListeners(); // Beritahu UI data sudah siap
   }
 
-  Future<void> fetchAllLaporanAdmin() async {
-    _isLoading = true;
-    notifyListeners();
+  // Fungsi Tambah Laporan (Opsional jika perangkat bisa nambah)
+  Future<void> addLaporan(String judul, String deskripsi, String? fotoUrl) async {
     try {
-      final List<dynamic> rawData = await _apiService.getAllLaporanAdmin();
-      _allLaporanAdmin = rawData.map((item) => LaporanModel.fromJson(item)).toList();
-      
-    } catch (e) {
-      debugPrint("Error fetch laporan admin: $e");
-      _allLaporanAdmin = [];
-    }
-    _isLoading = false;
-    notifyListeners();
-  }
-
-  Future<void> updateStatus(int id, String newStatus) async {
-    try {
-      await _apiService.updateStatusLaporan(id, newStatus);
-      await fetchAllLaporanAdmin(); 
+      await _apiService.postLaporan(judul, deskripsi, fotoUrl);
+      await fetchLaporan(); // Refresh otomatis setelah posting
     } catch (e) {
       rethrow;
     }

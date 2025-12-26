@@ -1,39 +1,42 @@
 class LaporanModel {
   final int id;
-  final int userId;
   final String judul;
   final String deskripsi;
   final String? fotoUrl;
-  final String? lokasi;
   final String status;
-  final String createdAt;
-  final String? namaPelapor;
+  final DateTime tanggal; // Menggunakan nama 'tanggal' sesuai permintaan Anda
+  final String pelapor;
 
   LaporanModel({
     required this.id,
-    required this.userId,
     required this.judul,
     required this.deskripsi,
     this.fotoUrl,
-    this.lokasi,
     required this.status,
-    required this.createdAt,
-    this.namaPelapor,
+    required this.tanggal,
+    required this.pelapor,
   });
 
   factory LaporanModel.fromJson(Map<String, dynamic> json) {
     return LaporanModel(
-      id: int.tryParse(json['id'].toString()) ?? 0, 
-      userId: int.tryParse(json['user_id'].toString()) ?? 0,
+      id: json['id'] ?? 0,
       judul: json['judul'] ?? 'Tanpa Judul',
-      deskripsi: json['deskripsi'] ?? '-',
-      fotoUrl: (json['foto_url'] != null && json['foto_url'].toString().isNotEmpty) 
-          ? json['foto_url'] 
-          : null, 
-      lokasi: json['lokasi'],
-      status: json['status'] ?? 'menunggu',
-      createdAt: json['created_at'] ?? DateTime.now().toIso8601String(),
-      namaPelapor: json['nama_lengkap'],
+      deskripsi: json['deskripsi'] ?? '',
+      
+      // Sesuaikan dengan respon backend (biasanya snake_case: foto_url)
+      fotoUrl: json['foto_url'], 
+      
+      status: json['status'] ?? 'belum terdaftar',
+      
+      // Map 'created_at' dari database ke variabel 'tanggal'
+      tanggal: json['created_at'] != null 
+          ? DateTime.parse(json['created_at']) 
+          : DateTime.now(),
+      
+      // ✅ PERBAIKAN DI SINI:
+      // Backend mengirim key 'pelapor' (karena query: u.nama_lengkap AS pelapor)
+      // Jadi kita panggil json['pelapor'], BUKAN json['pelapor_name']
+      pelapor: json['pelapor'] ?? 'Warga', 
     );
   }
 }

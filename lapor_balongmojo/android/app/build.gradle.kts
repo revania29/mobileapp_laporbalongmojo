@@ -1,8 +1,11 @@
 plugins {
     id("com.android.application")
+    // START: FlutterFire Configuration
+    id("com.google.gms.google-services")
+    // END: FlutterFire Configuration
     id("kotlin-android")
+    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
-    id ("com.google.gms.google-services")
 }
 
 android {
@@ -11,12 +14,16 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        // PERBAIKAN 1: Syntax Kotlin DSL menggunakan 'is...' dan '='
+        isCoreLibraryDesugaringEnabled = true
+        
+        // PERBAIKAN 2: Gunakan satu versi saja (Java 8 standar untuk desugaring)
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        jvmTarget = "1.8"
     }
 
     defaultConfig {
@@ -43,8 +50,7 @@ flutter {
     source = "../.."
 }
 
+// PERBAIKAN 3: Menambahkan blok dependencies (Wajib untuk Desugaring)
 dependencies {
-    implementation ("org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version")
-    implementation (platform("com.google.firebase:firebase-bom:34.7.0"))
-    implementation ("com.google.firebase:firebase-analytics")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

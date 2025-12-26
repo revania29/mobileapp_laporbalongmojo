@@ -1,29 +1,37 @@
 const jwt = require('jsonwebtoken');
-require('dotenv').config();
 
-const verifyToken = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+// Mengecek apakah token valid
+exports.verifyToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
 
-    if (!token) {
-        return res.status(403).json({ message: 'Akses ditolak! Token tidak tersedia.' });
-    }
+  if (!token) {
+    return res.status(401).json({ message: 'Akses ditolak, token tidak ditemukan.' });
+  }
 
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded;
-        next();
-    } catch (error) {
-        return res.status(401).json({ message: 'Token tidak valid!' });
-    }
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret_key_anda');
+    req.user = decoded; // Berisi id dan role
+    next();
+  } catch (err) {
+    return res.status(403).json({ message: 'Token tidak valid atau kadaluwarsa.' });
+  }
 };
 
-const isPerangkat = (req, res, next) => {
-    if (req.user && req.user.role === 'perangkat') {
-        next();
-    } else {
-        res.status(403).json({ message: 'Akses Ditolak! Khusus Perangkat Desa.' });
-    }
+// Khusus Perangkat / Admin
+exports.isPerangkat = (req, res, next) => {
+  if (req.user.role === 'perangkat' || req.user.role === 'admin') {
+    next();
+  } else {
+    return res.status(403).json({ message: 'Akses ditolak, hanya untuk perangkat desa.' });
+  }
 };
 
-module.exports = { verifyToken };
+// Khusus Masyarakat
+exports.isMasyarakat = (req, res, next) => {
+  if (req.user.role === 'masyarakat') {
+    next();
+  } else {
+    return res.status(403).json({ message: 'Akses ditolak, hanya untuk masyarakat.' });
+  }
+};

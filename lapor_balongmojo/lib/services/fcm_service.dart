@@ -1,58 +1,130 @@
+import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:lapor_balongmojo/main.dart';
+import 'package:lapor_balongmojo/models/berita_model.dart';
+import 'package:lapor_balongmojo/screens/masyarakat/berita_detail_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // WAJIB IMPORT INI
+
+const AndroidNotificationChannel channel = AndroidNotificationChannel(
+  'high_importance_channel',
+  'High Importance Notifications',
+  description: 'This channel is used for important notifications.',
+  importance: Importance.max,
+);
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  print("Handling a background message: ${message.messageId}");
+}
 
 class FcmService {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
-  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+  static const String _topicName = 'emergency_alerts';
 
-  Future<void> init() async {
-    NotificationSettings settings = await _firebaseMessaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+  Future<void> initialize() async {
+    try {
+      // 1. Setup Local Notification
+      const AndroidInitializationSettings initializationSettingsAndroid =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
+      const InitializationSettings initializationSettings =
+          InitializationSettings(android: initializationSettingsAndroid);
 
-    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      debugPrint('Izin Notifikasi Diberikan');
-    } else {
-      debugPrint('Izin Notifikasi Ditolak');
-      return;
-    }
+      await flutterLocalNotificationsPlugin.initialize(
+        initializationSettings,
+        onDidReceiveNotificationResponse: (NotificationResponse response) {
+          if (response.payload != null) {
+            _navigateToDetail(response.payload!);
+          }
+        },
+      );
 
-    await _firebaseMessaging.subscribeToTopic('emergency_alerts');
-    debugPrint("Subscribed to emergency_alerts");
+      // 2. Setup Channel
+      await flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(channel);
 
-    const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const InitializationSettings initSettings = InitializationSettings(android: androidSettings);
-    await _localNotifications.initialize(initSettings);
+      await _firebaseMessaging.setForegroundNotificationPresentationOptions(
+        alert: true, badge: true, sound: true,
+      );
 
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      debugPrint("Pesan masuk saat foreground: ${message.notification?.title}");
+      // 3. LOGIKA SUBSCRIBE: HANYA MASYARAKAT
+      final prefs = await SharedPreferences.getInstance();
+      String? role = prefs.getString('userRole'); 
       
-      if (message.notification != null) {
-        _showLocalNotification(message);
+      if (role == 'masyarakat') {
+         await _firebaseMessaging.subscribeToTopic(_topicName);
+         print('>>> [FCM] User Masyarakat -> SUBSCRIBE $_topicName');
+      } else {
+         await _firebaseMessaging.unsubscribeFromTopic(_topicName);
+         print('>>> [FCM] User Admin/Perangkat -> UNSUBSCRIBE $_topicName');
       }
-    });
+
+      // 4. Listen Message
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        RemoteNotification? notification = message.notification;
+        AndroidNotification? android = message.notification?.android;
+
+        if (notification != null && android != null) {
+          String payloadData = jsonEncode({
+            'judul': notification.title ?? 'Darurat',
+            'isi': notification.body ?? 'Isi berita tidak tersedia',
+          });
+
+          flutterLocalNotificationsPlugin.show(
+            notification.hashCode,
+            notification.title,
+            notification.body,
+            NotificationDetails(
+              android: AndroidNotificationDetails(
+                channel.id,
+                channel.name,
+                channelDescription: channel.description,
+                icon: '@mipmap/ic_launcher',
+                importance: Importance.max,
+                priority: Priority.high,
+                playSound: true,
+                color: const Color.fromARGB(255, 255, 0, 0),
+              ),
+            ),
+            payload: payloadData,
+          );
+        }
+      });
+
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+    } catch (e) {
+      print('Error inisialisasi FCM: $e');
+    }
   }
 
-  Future<void> _showLocalNotification(RemoteMessage message) async {
-    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'channel_darurat', 
-      'Peringatan Darurat', 
-      importance: Importance.max,
-      priority: Priority.high,
-      color: Colors.red,
-      playSound: true,
-    );
+  void _navigateToDetail(String payload) {
+    try {
+      final data = jsonDecode(payload);
+      BeritaModel berita = BeritaModel(
+        id: 0,
+        judul: data['judul'],
+        isi: data['isi'],
+        gambarUrl: null,
+        authorName: "Peringatan Darurat",
+        createdAt: DateTime.now(),
+        isPeringatanDarurat: true,
+      );
+      navigatorKey.currentState?.push(
+        MaterialPageRoute(builder: (_) => BeritaDetailScreen(berita: berita)),
+      );
+    } catch (e) {
+      print('Gagal parsing payload: $e');
+    }
+  }
 
-    const NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
-
-    await _localNotifications.show(
-      message.hashCode,
-      message.notification?.title,
-      message.notification?.body,
-      platformDetails,
-    );
+  Future<void> unsubscribeFromTopic() async {
+    await _firebaseMessaging.unsubscribeFromTopic(_topicName);
   }
 }

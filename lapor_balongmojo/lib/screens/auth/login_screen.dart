@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+// Import Provider
 import 'package:lapor_balongmojo/providers/auth_provider.dart';
-import 'package:lapor_balongmojo/screens/auth/register_masyarakat_screen.dart';
-import 'package:lapor_balongmojo/screens/masyarakat/home_screen_masyarakat.dart';
-import 'package:lapor_balongmojo/screens/perangkat/dashboard_screen_perangkat.dart';
+
+// Import Widget & Screen Lain
 import 'package:lapor_balongmojo/widgets/custom_textfield.dart';
-// Import PrimaryButton DIHAPUS karena tidak dipakai
-import 'package:lapor_balongmojo/utils/ui_utils.dart'; 
+import 'package:lapor_balongmojo/widgets/primary_button.dart';
+import 'package:lapor_balongmojo/screens/auth/register_masyarakat_screen.dart';
+
+// --- PENTING: Import Halaman Tujuan ---
+import 'package:lapor_balongmojo/screens/perangkat/dashboard_screen_perangkat.dart';
+import 'package:lapor_balongmojo/screens/masyarakat/home_screen_masyarakat.dart';
 
 class LoginScreen extends StatefulWidget {
   static const routeName = '/login';
@@ -17,42 +22,69 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLoading = false; 
+  bool _isLoading = false;
 
-  Future<void> _login() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      UiUtils.showError(context, "Email dan Password harus diisi!");
-      return;
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitLogin() async {
+    // 1. Validasi Form
+    if (!_formKey.currentState!.validate()) {
+      return; 
     }
-
-    setState(() => _isLoading = true); 
-
+    _formKey.currentState!.save();
+    
+    setState(() { _isLoading = true; });
+    
     try {
+      // 2. Panggil Fungsi Login di Provider
       await Provider.of<AuthProvider>(context, listen: false).login(
-        _emailController.text,
-        _passwordController.text,
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
       );
 
+      // Cek apakah widget masih aktif sebelum navigasi
       if (!mounted) return;
 
-      final user = Provider.of<AuthProvider>(context, listen: false).user;
-      
-      // Feedback Sukses
-      UiUtils.showSuccess(context, "Selamat datang, ${user?.nama}!");
+      // 3. Ambil Role User untuk menentukan halaman tujuan
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final role = authProvider.userRole;
 
-      // Redirect sesuai Role
-      if (user?.role == 'perangkat') {
-        Navigator.of(context).pushReplacementNamed(DashboardScreenPerangkat.routeName);
+      print("Login Berhasil. Role: $role. Mengalihkan halaman...");
+
+      // 4. Logika Navigasi Berdasarkan Role
+      if (role == 'perangkat' || role == 'admin') {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (ctx) => const DashboardScreenPerangkat()),
+        );
       } else {
-        Navigator.of(context).pushReplacementNamed(HomeScreenMasyarakat.routeName);
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (ctx) => const HomeScreenMasyarakat()),
+        );
       }
-    } catch (e) {
-      if (!mounted) return;
-      UiUtils.showError(context, e.toString()); 
+
+    } catch (error) {
+      // 5. Tampilkan Error jika login gagal
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error.toString()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
-      if (mounted) setState(() => _isLoading = false); 
+      // 6. Matikan loading
+      if (mounted) {
+        setState(() { _isLoading = false; });
+      }
     }
   }
 
@@ -61,62 +93,68 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Icon(Icons.verified_user, size: 80, color: Colors.indigo),
-              const SizedBox(height: 16),
-              const Text(
-                'Lapor Balongmojo',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 30),
-              
-              CustomTextField(
-                controller: _emailController,
-                labelText: 'Email',
-                icon: Icons.email,
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 16),
-              
-              CustomTextField(
-                controller: _passwordController,
-                labelText: 'Password',
-                icon: Icons.lock,
-                isPassword: true,
-              ),
-              const SizedBox(height: 24),
-              
-              // Kita pakai ElevatedButton manual disini agar bisa handle loading spinner
-              SizedBox(
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _login, 
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.indigo,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.all(24.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Logo atau Judul
+                Text(
+                  'Lapor Balongmojo',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).primaryColor,
                   ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20, width: 20,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                        )
-                      : const Text('MASUK', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
-              ),
-              
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pushNamed(RegisterMasyarakatScreen.routeName);
-                },
-                child: const Text('Belum punya akun? Daftar Warga'),
-              ),
-            ],
+                const SizedBox(height: 32),
+
+                // Input Email
+                CustomTextField(
+                  controller: _emailController,
+                  labelText: 'Email',
+                  icon: Icons.email,
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (val) {
+                    if (val == null || val.isEmpty) {
+                      return 'Email tidak boleh kosong';
+                    }
+                    if (!val.contains('@')) {
+                      return 'Masukkan email yang valid';
+                    }
+                    return null;
+                  },
+                ),
+
+                // Input Password
+                CustomTextField(
+                  controller: _passwordController,
+                  labelText: 'Password',
+                  icon: Icons.lock,
+                  isObscure: true,
+                  validator: (val) =>
+                      val!.isEmpty ? 'Password tidak boleh kosong' : null,
+                ),
+                
+                const SizedBox(height: 24),
+
+                // Tombol Login
+                PrimaryButton(
+                  text: 'LOGIN',
+                  onPressed: _submitLogin,
+                  isLoading: _isLoading,
+                ),
+
+                // Tombol Daftar
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context)
+                        .pushNamed(RegisterMasyarakatScreen.routeName);
+                  },
+                  child: const Text('Belum punya akun? Daftar (Masyarakat)'),
+                )
+              ],
+            ),
           ),
         ),
       ),
