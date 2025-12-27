@@ -17,18 +17,15 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      // Menggunakan parse toString() untuk jaga-jaga jika ID dikirim sebagai String dari backend
       id: int.tryParse(json['id'].toString()) ?? 0, 
       nama: json['nama'] ?? 'No Name',
       email: json['email'] ?? '',
       role: json['role'] ?? 'masyarakat',
-      // Mengambil data snake_case dari backend
       noTelepon: json['no_telepon'], 
       fotoProfil: json['foto_profil'],
     );
   }
 
-  // Method ini sangat berguna di AuthProvider saat update profile
   UserModel copyWith({
     int? id,
     String? nama,

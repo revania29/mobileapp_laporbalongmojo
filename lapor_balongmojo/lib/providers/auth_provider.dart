@@ -44,7 +44,6 @@ class AuthProvider with ChangeNotifier {
       return;
     }
 
-    // ✅ LOAD SEMUA DATA
     final id = prefs.getInt('userId') ?? 0;
     final nama = prefs.getString('userName') ?? 'User';
     final email = prefs.getString('userEmail') ?? '';
@@ -62,8 +61,7 @@ class AuthProvider with ChangeNotifier {
     );
 
     _status = AuthStatus.authenticated;
-    
-    // Inisialisasi FCM ulang saat auto login
+
     await _fcmService.initialize();
     _handleFcmTopicSubscription(role);
 
@@ -72,16 +70,13 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> login(String email, String password) async {
     try {
-      print(">>> [AUTH] Memulai Login...");
       String? fcmToken = await FirebaseMessaging.instance.getToken();
-      
+
       final responseData = await _apiService.login(email, password, fcmToken);
-      print(">>> [AUTH] Login Sukses");
 
       _token = responseData['token'];
       UserModel tempUser = UserModel.fromJson(responseData['user']);
 
-      // Cek hardcode admin (opsional sesuai kebutuhan Anda)
       if (email.toLowerCase().trim() == 'admin@gmail.com') {
         _user = tempUser.copyWith(role: 'perangkat', email: email);
       } else {
@@ -89,14 +84,12 @@ class AuthProvider with ChangeNotifier {
       }
 
       await _storageService.writeToken(_token!);
-
-      // ✅ SIMPAN SEMUA DATA KE PREFS
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt('userId', _user!.id);
       await prefs.setString('userName', _user!.nama);
       await prefs.setString('userRole', _user!.role);
       await prefs.setString('userEmail', _user!.email);
-      
+
       if (_user!.noTelepon != null) {
         await prefs.setString('userPhone', _user!.noTelepon!);
       }
@@ -105,42 +98,37 @@ class AuthProvider with ChangeNotifier {
       }
 
       _status = AuthStatus.authenticated;
-      
+
       await _fcmService.initialize();
       _handleFcmTopicSubscription(_user!.role);
 
       notifyListeners();
     } catch (e) {
-      print(">>> [AUTH] ERROR: $e");
       _status = AuthStatus.unauthenticated;
       notifyListeners();
       rethrow;
     }
   }
 
-  // ✅ METHOD UPDATE YANG DIPERBAIKI (Named Parameters)
   Future<void> updateUserProfile({
     required String newName,
     required String newPhone,
-    String? fotoProfil, // Optional path foto
+    String? fotoProfil,
   }) async {
     try {
-      // Panggil API (pastikan API service Anda mendukung update ini)
       await _apiService.updateProfile(newName, newPhone);
 
       if (_user != null) {
-        // Update model di memory
         _user = _user!.copyWith(
           nama: newName,
           noTelepon: newPhone,
           fotoProfil: fotoProfil ?? _user!.fotoProfil,
         );
 
-        // Update persistence agar sinkron
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('userName', newName);
         await prefs.setString('userPhone', newPhone);
-        
+
         if (fotoProfil != null) {
           await prefs.setString('userPhoto', fotoProfil);
         }
@@ -154,7 +142,7 @@ class AuthProvider with ChangeNotifier {
 
   void _handleFcmTopicSubscription(String role) async {
     try {
-      if (role == 'perangkat') {
+      if (role == 'perangkat' || role == 'admin') {
         await FirebaseMessaging.instance.subscribeToTopic('laporan_perangkat');
         await FirebaseMessaging.instance.unsubscribeFromTopic('emergency_alerts');
       } else {
@@ -162,21 +150,30 @@ class AuthProvider with ChangeNotifier {
         await FirebaseMessaging.instance.subscribeToTopic('emergency_alerts');
       }
     } catch (e) {
-      print(">>> [FCM] Topic Error: $e");
+      debugPrint("FCM Topic Error: $e");
     }
   }
 
   Future<void> registerMasyarakat(
-      String nama, String email, String noTelp, String password) async {
+    String nama,
+    String email,
+    String noTelp,
+    String password,
+  ) async {
     await _apiService.registerMasyarakat(nama, email, noTelp, password);
   }
 
   Future<void> logout() async {
     try {
-      await FirebaseMessaging.instance.unsubscribeFromTopic('laporan_perangkat');
-      await FirebaseMessaging.instance.unsubscribeFromTopic('emergency_alerts');
+      if (_user != null) {
+        if (_user!.role == 'perangkat' || _user!.role == 'admin') {
+          await FirebaseMessaging.instance.unsubscribeFromTopic('laporan_perangkat');
+        } else {
+          await FirebaseMessaging.instance.unsubscribeFromTopic('emergency_alerts');
+        }
+      }
     } catch (e) {
-      print(">>> [FCM] Unsub Error: $e");
+      debugPrint("Logout FCM Error: $e");
     }
 
     _token = null;

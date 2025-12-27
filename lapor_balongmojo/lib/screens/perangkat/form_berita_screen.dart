@@ -39,7 +39,6 @@ class _FormBeritaScreenState extends State<FormBeritaScreen> {
     }
   }
 
-  // --- PILIH GAMBAR ---
   Future<void> _pickImage(ImageSource source) async {
     try {
       final XFile? image = await _picker.pickImage(source: source, imageQuality: 80);
@@ -61,7 +60,6 @@ class _FormBeritaScreenState extends State<FormBeritaScreen> {
     }
   }
 
-  // --- FUNGSI HAPUS GAMBAR ---
   void _clearImage() {
     setState(() {
       _pickedImage = null;
@@ -69,7 +67,6 @@ class _FormBeritaScreenState extends State<FormBeritaScreen> {
     });
   }
 
-  // --- SUBMIT ---
   Future<void> _submitBerita() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -146,7 +143,6 @@ class _FormBeritaScreenState extends State<FormBeritaScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 
-                // JUDUL
                 GlassCard(
                   opacity: 0.15,
                   color: Colors.black,
@@ -165,7 +161,6 @@ class _FormBeritaScreenState extends State<FormBeritaScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // DARURAT SWITCH
                 GlassCard(
                   opacity: _isPeringatanDarurat ? 0.4 : 0.15,
                   color: _isPeringatanDarurat ? Colors.red.shade900 : Colors.black,
@@ -178,7 +173,7 @@ class _FormBeritaScreenState extends State<FormBeritaScreen> {
                       style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12),
                     ),
                     value: _isPeringatanDarurat,
-                    activeColor: Colors.white,
+                    activeThumbColor: Colors.white,
                     activeTrackColor: Colors.redAccent,
                     secondary: Icon(Icons.warning_amber_rounded, color: _isPeringatanDarurat ? Colors.white : Colors.white54, size: 30),
                     onChanged: (val) {
@@ -188,7 +183,6 @@ class _FormBeritaScreenState extends State<FormBeritaScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // ISI BERITA
                 GlassCard(
                   opacity: 0.15,
                   color: Colors.black,
@@ -208,7 +202,6 @@ class _FormBeritaScreenState extends State<FormBeritaScreen> {
                 ),
                 const SizedBox(height: 25),
 
-                // --- UPLOAD FOTO ---
                 GlassCard(
                   opacity: 0.1,
                   color: Colors.white,
@@ -235,12 +228,11 @@ class _FormBeritaScreenState extends State<FormBeritaScreen> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      
-                      // ✅ PERBAIKAN LAYOUT TOMBOL (MENGGUNAKAN COLUMN)
+
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // Baris 1: Kamera & Galeri (Pakai Expanded agar rata)
+ 
                           Row(
                             children: [
                               Expanded(
@@ -253,7 +245,6 @@ class _FormBeritaScreenState extends State<FormBeritaScreen> {
                             ],
                           ),
                           
-                          // Baris 2: Tombol Hapus (Muncul di bawah jika ada foto)
                           if (_pickedImage != null || _existingImageUrl != null) ...[
                             const SizedBox(height: 15), // Jarak vertikal
                             _buildMediaButton(Icons.delete_forever, "Hapus Foto", null, isDelete: true),
@@ -265,7 +256,6 @@ class _FormBeritaScreenState extends State<FormBeritaScreen> {
                 ),
                 const SizedBox(height: 35),
 
-                // TOMBOL SUBMIT
                 Container(
                   height: 55,
                   decoration: BoxDecoration(
@@ -324,7 +314,6 @@ class _FormBeritaScreenState extends State<FormBeritaScreen> {
     }
   }
 
-  // Widget Tombol Media
   Widget _buildMediaButton(IconData icon, String label, ImageSource? source, {bool isDelete = false}) {
     return ElevatedButton.icon(
       onPressed: () {

@@ -18,8 +18,6 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
   final _formKey = GlobalKey<FormState>();
   final _judulController = TextEditingController();
   final _deskripsiController = TextEditingController();
-  
-  // --- DATA DUSUN ---
   final List<String> _listDusun = [
     'Setoyo',
     'Delik',
@@ -34,8 +32,6 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
   final ApiService _apiService = ApiService(); 
-
-  // --- FUNGSI PILIH GAMBAR ---
   Future<void> _pickImage(ImageSource source) async {
     try {
       final XFile? image = await _picker.pickImage(source: source, imageQuality: 80);
@@ -63,14 +59,12 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
     }
   }
 
-  // --- FUNGSI HAPUS GAMBAR ---
   void _clearImage() {
     setState(() {
       _pickedImage = null;
     });
   }
 
-  // --- FUNGSI SUBMIT LAPORAN ---
   Future<void> _submitLaporan() async {
     if (!_formKey.currentState!.validate()) return;
     
@@ -84,15 +78,12 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
     setState(() { _isLoading = true; });
 
     try {
-      // 1. Upload Gambar
       String? uploadedUrl;
       if (_pickedImage != null) {
         uploadedUrl = await _apiService.uploadImage(_pickedImage!);
       }
 
       if (!mounted) return;
-
-      // 2. Gabungkan Dusun ke Deskripsi
       String deskripsiFinal = "Lokasi: $_selectedDusun\n\n${_deskripsiController.text}";
 
       await Provider.of<LaporanProvider>(context, listen: false).addLaporan(
@@ -144,7 +135,6 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // --- INPUT JUDUL ---
                 GlassCard(
                   opacity: 0.15,
                   color: Colors.black,
@@ -153,7 +143,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                     controller: _judulController,
                     style: const TextStyle(color: Colors.white, fontSize: 16),
                     decoration: const InputDecoration(
-                      hintText: 'Judul Laporan Singkat',
+                      hintText: 'Judul Laporan',
                       hintStyle: TextStyle(color: Colors.white70),
                       icon: Icon(Icons.title_rounded, color: Colors.white70),
                       border: InputBorder.none,
@@ -162,8 +152,6 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-
-                // --- DROPDOWN DUSUN ---
                 GlassCard(
                   opacity: 0.15,
                   color: Colors.black,
@@ -199,8 +187,6 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-
-                // --- INPUT DESKRIPSI ---
                 GlassCard(
                   opacity: 0.15,
                   color: Colors.black,
@@ -219,8 +205,6 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                   ),
                 ),
                 const SizedBox(height: 25),
-
-                // --- AREA FOTO ---
                 GlassCard(
                   opacity: 0.1,
                   color: Colors.white,
@@ -249,7 +233,7 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                                   children: const [
                                     Icon(Icons.add_a_photo_rounded, size: 50, color: Colors.white38),
                                     SizedBox(height: 10),
-                                    Text("Tap untuk ambil foto", style: TextStyle(color: Colors.white54)),
+                                    Text("Pilih foto", style: TextStyle(color: Colors.white54)),
                                   ],
                                 )
                               : null,
@@ -257,11 +241,9 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      // ✅ PERBAIKAN LAYOUT TOMBOL (MENGGUNAKAN COLUMN)
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // Baris 1: Kamera & Galeri (Pakai Expanded agar rata)
                           Row(
                             children: [
                               Expanded(
@@ -273,8 +255,6 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                               ),
                             ],
                           ),
-                          
-                          // Baris 2: Tombol Hapus (Muncul di bawah jika ada foto)
                           if (_pickedImage != null) ...[
                             const SizedBox(height: 15), // Jarak vertikal
                             _buildMediaButton(Icons.delete_forever, "Hapus Foto", null, isDelete: true),
@@ -286,7 +266,6 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
                 ),
                 const SizedBox(height: 35),
 
-                // --- TOMBOL KIRIM (WARNA UNGU GRADIENT) ---
                 Container(
                   height: 55,
                   decoration: BoxDecoration(
@@ -322,7 +301,6 @@ class _FormLaporanScreenState extends State<FormLaporanScreen> {
     );
   }
 
-  // Widget Tombol Media
   Widget _buildMediaButton(IconData icon, String label, ImageSource? source, {bool isDelete = false}) {
     return ElevatedButton.icon(
       onPressed: () {

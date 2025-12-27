@@ -23,7 +23,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     final user = Provider.of<AuthProvider>(context, listen: false).user;
     _namaController = TextEditingController(text: user?.nama ?? '');
-    // Handle null phone dengan string kosong
     _phoneController = TextEditingController(text: user?.noTelepon ?? '');
   }
 
@@ -51,20 +50,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // ✅ Perbaikan Cara Panggil Provider (Named Parameters)
       await Provider.of<AuthProvider>(context, listen: false).updateUserProfile(
         newName: _namaController.text,
         newPhone: _phoneController.text,
-        fotoProfil: _imageFile?.path, // Kirim path jika ada foto baru
+        fotoProfil: _imageFile?.path, 
       );
 
-      // ✅ Perbaikan Context Async Gap (Cek mounted)
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profil berhasil diperbarui!')),
       );
-      Navigator.pop(context); // Kembali
+      Navigator.pop(context); 
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -77,11 +74,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Ambil user terbaru dari provider
     final authProvider = Provider.of<AuthProvider>(context);
     final user = authProvider.user;
-
-    // ✅ Perbaikan: Gunakan fotoProfil (bukan fotoUrl)
     final String? currentPhotoUrl = user?.fotoProfil;
 
     return Scaffold(
@@ -100,7 +94,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   backgroundImage: _imageFile != null
                       ? FileImage(_imageFile!) as ImageProvider
                       : (currentPhotoUrl != null && currentPhotoUrl.isNotEmpty)
-                          ? NetworkImage(currentPhotoUrl) // Pastikan URL valid
+                          ? NetworkImage(currentPhotoUrl)
                           : null,
                   child: (_imageFile == null && (currentPhotoUrl == null || currentPhotoUrl.isEmpty))
                       ? const Icon(Icons.camera_alt, size: 40, color: Colors.grey)

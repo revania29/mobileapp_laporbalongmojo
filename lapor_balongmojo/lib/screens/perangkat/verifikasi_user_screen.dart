@@ -32,7 +32,7 @@ class _VerifikasiUserScreenState extends State<VerifikasiUserScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('User berhasil diverifikasi!'), backgroundColor: Colors.green),
       );
-      _loadData(); // Refresh list
+      _loadData(); 
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -48,7 +48,7 @@ class _VerifikasiUserScreenState extends State<VerifikasiUserScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('User berhasil ditolak!'), backgroundColor: Colors.orange),
       );
-      _loadData(); // Refresh list
+      _loadData();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -62,17 +62,14 @@ class _VerifikasiUserScreenState extends State<VerifikasiUserScreen> {
     return FutureBuilder<List<dynamic>>(
       future: _pendingUsersFuture,
       builder: (context, snapshot) {
-        // 1. Loading
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator(color: Colors.cyanAccent));
         }
         
-        // 2. Error
         if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.redAccent)));
         }
         
-        // 3. Kosong
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const Center(
             child: Text(
@@ -82,7 +79,6 @@ class _VerifikasiUserScreenState extends State<VerifikasiUserScreen> {
           );
         }
 
-        // 4. Ada Data
         final users = snapshot.data!;
         return ListView.separated(
           padding: const EdgeInsets.all(20),
@@ -91,14 +87,13 @@ class _VerifikasiUserScreenState extends State<VerifikasiUserScreen> {
           itemBuilder: (ctx, index) {
             final user = users[index];
             
-            // ✅ Menggunakan GlassCard agar seragam dengan Dashboard
             return GlassCard(
               opacity: 0.15,
               color: Colors.black,
               borderColor: Colors.white.withOpacity(0.2),
               child: Row(
                 children: [
-                  // Icon User
+
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -109,7 +104,6 @@ class _VerifikasiUserScreenState extends State<VerifikasiUserScreen> {
                   ),
                   const SizedBox(width: 15),
                   
-                  // Info User
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

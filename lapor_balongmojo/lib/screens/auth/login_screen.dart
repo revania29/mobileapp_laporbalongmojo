@@ -1,15 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
-// Import Provider
 import 'package:lapor_balongmojo/providers/auth_provider.dart';
-
-// Import Widget & Screen Lain
 import 'package:lapor_balongmojo/widgets/custom_textfield.dart';
 import 'package:lapor_balongmojo/widgets/primary_button.dart';
 import 'package:lapor_balongmojo/screens/auth/register_masyarakat_screen.dart';
-
-// --- PENTING: Import Halaman Tujuan ---
 import 'package:lapor_balongmojo/screens/perangkat/dashboard_screen_perangkat.dart';
 import 'package:lapor_balongmojo/screens/masyarakat/home_screen_masyarakat.dart';
 
@@ -35,31 +29,28 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _submitLogin() async {
-    // 1. Validasi Form
     if (!_formKey.currentState!.validate()) {
-      return; 
+      return;
     }
     _formKey.currentState!.save();
-    
-    setState(() { _isLoading = true; });
-    
+
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
-      // 2. Panggil Fungsi Login di Provider
+      // Melakukan proses login melalui AuthProvider
       await Provider.of<AuthProvider>(context, listen: false).login(
         _emailController.text.trim(),
         _passwordController.text.trim(),
       );
-
-      // Cek apakah widget masih aktif sebelum navigasi
+      
       if (!mounted) return;
 
-      // 3. Ambil Role User untuk menentukan halaman tujuan
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final role = authProvider.userRole;
 
-      print("Login Berhasil. Role: $role. Mengalihkan halaman...");
-
-      // 4. Logika Navigasi Berdasarkan Role
+      // Navigasi berdasarkan role user
       if (role == 'perangkat' || role == 'admin') {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (ctx) => const DashboardScreenPerangkat()),
@@ -69,21 +60,27 @@ class _LoginScreenState extends State<LoginScreen> {
           MaterialPageRoute(builder: (ctx) => const HomeScreenMasyarakat()),
         );
       }
-
     } catch (error) {
-      // 5. Tampilkan Error jika login gagal
       if (mounted) {
+        // ✅ LOGIKA "SAKTI": Menghapus prefix Exception agar pesan bersih
+        String errorMessage = error.toString()
+            .replaceAll('Exception: ', '')
+            .replaceAll('Exception:', '')
+            .trim();
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(error.toString()),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
     } finally {
-      // 6. Matikan loading
       if (mounted) {
-        setState(() { _isLoading = false; });
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
@@ -99,17 +96,14 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo atau Judul
                 Text(
                   'Lapor Balongmojo',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).primaryColor,
-                  ),
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).primaryColor,
+                      ),
                 ),
                 const SizedBox(height: 32),
-
-                // Input Email
                 CustomTextField(
                   controller: _emailController,
                   labelText: 'Email',
@@ -125,8 +119,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     return null;
                   },
                 ),
-
-                // Input Password
+                const SizedBox(height: 16),
                 CustomTextField(
                   controller: _passwordController,
                   labelText: 'Password',
@@ -135,17 +128,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   validator: (val) =>
                       val!.isEmpty ? 'Password tidak boleh kosong' : null,
                 ),
-                
                 const SizedBox(height: 24),
-
-                // Tombol Login
                 PrimaryButton(
                   text: 'LOGIN',
                   onPressed: _submitLogin,
                   isLoading: _isLoading,
                 ),
-
-                // Tombol Daftar
+                const SizedBox(height: 16),
                 TextButton(
                   onPressed: () {
                     Navigator.of(context)

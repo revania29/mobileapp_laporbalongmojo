@@ -18,7 +18,6 @@ class PrimaryButton extends StatelessWidget {
       width: double.infinity,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
-        // Style tombol sudah diatur di main.dart, jadi disini bersih
         child: isLoading
             ? const SizedBox(
                 height: 20,

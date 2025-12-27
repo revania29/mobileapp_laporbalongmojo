@@ -20,8 +20,6 @@ class CustomTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Kita hapus Container manual, dan gunakan styling bawaan Theme di main.dart
-    // agar lebih konsisten dan rapi.
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: TextFormField(
@@ -32,7 +30,6 @@ class CustomTextField extends StatelessWidget {
         decoration: InputDecoration(
           labelText: labelText,
           prefixIcon: Icon(icon),
-          // Style lainnya sudah otomatis dari main.dart
         ),
       ),
     );

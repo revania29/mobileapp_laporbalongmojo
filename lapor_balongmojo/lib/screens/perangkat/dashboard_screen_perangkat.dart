@@ -4,14 +4,12 @@ import 'package:intl/intl.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:lapor_balongmojo/providers/auth_provider.dart';
 import 'package:lapor_balongmojo/providers/laporan_provider.dart';
-// Import Form Berita
 import 'package:lapor_balongmojo/screens/perangkat/form_berita_screen.dart';
 import 'package:lapor_balongmojo/screens/perangkat/verifikasi_user_screen.dart'; 
 import 'package:lapor_balongmojo/services/api_service.dart';
 import 'package:lapor_balongmojo/models/laporan_model.dart';
 import 'package:lapor_balongmojo/models/berita_model.dart';
 import 'package:lapor_balongmojo/widgets/glass_card.dart'; 
-// Import Detail Screens
 import 'package:lapor_balongmojo/screens/perangkat/detail_laporan_screen.dart'; 
 import 'package:lapor_balongmojo/screens/perangkat/detail_berita_screen.dart'; 
 
@@ -32,11 +30,8 @@ class _DashboardScreenPerangkatState extends State<DashboardScreenPerangkat> wit
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    
-    // 1. Auto Refresh saat awal buka
+    _beritaFuture = _apiService.getBerita(); 
     _refreshData(); 
-
-    // 2. Auto Refresh saat ada notifikasi
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       if (message.data['refresh'] == 'true' || true) {
         _refreshData();
@@ -49,15 +44,52 @@ class _DashboardScreenPerangkatState extends State<DashboardScreenPerangkat> wit
 
   Future<void> _refreshData() async { 
     if (mounted) {
-      // Refresh Laporan via Provider
       await Provider.of<LaporanProvider>(context, listen: false).fetchLaporan();
-      // Refresh Berita (setState untuk memicu FutureBuilder ulang)
-      setState(() { _beritaFuture = _apiService.getBerita(); }); 
+      setState(() { 
+        _beritaFuture = _apiService.getBerita(); 
+      }); 
     }
   }
 
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF2E004F),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          "Keluar Akun",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          "Apakah Anda yakin ingin keluar?",
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Batal", style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await Provider.of<AuthProvider>(context, listen: false).logout();
+              if (mounted) {
+                Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+              }
+            },
+            child: const Text(
+              "Keluar",
+              style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showDeleteConfirm(BuildContext context, int id, bool isBerita) {
-     showDialog(context: context, builder: (ctx) => AlertDialog(backgroundColor: const Color(0xFF2E004F), title: Text(isBerita ? "Hapus Berita?" : "Hapus?", style: const TextStyle(color: Colors.white)), actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Batal", style: TextStyle(color: Colors.grey))), TextButton(onPressed: () async { Navigator.pop(ctx); if(isBerita) await _apiService.deleteBerita(id); _refreshData(); }, child: const Text("Hapus", style: TextStyle(color: Colors.redAccent)))]));
+      showDialog(context: context, builder: (ctx) => AlertDialog(backgroundColor: const Color(0xFF2E004F), title: Text(isBerita ? "Hapus Berita?" : "Hapus?", style: const TextStyle(color: Colors.white)), actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Batal", style: TextStyle(color: Colors.grey))), TextButton(onPressed: () async { Navigator.pop(ctx); if(isBerita) await _apiService.deleteBerita(id); _refreshData(); }, child: const Text("Hapus", style: TextStyle(color: Colors.redAccent)))]));
   }
 
   @override
@@ -74,11 +106,10 @@ class _DashboardScreenPerangkatState extends State<DashboardScreenPerangkat> wit
           backgroundColor: Colors.transparent,
           elevation: 0,
           actions: [
-            // ✅ TOMBOL REFRESH DIHAPUS, TINGGAL LOGOUT
-            IconButton(icon: const Icon(Icons.logout_rounded, color: Colors.white), onPressed: () {
-                Provider.of<AuthProvider>(context, listen: false).logout();
-                Navigator.of(context).pushReplacementNamed('/login');
-            }),
+            IconButton(
+              icon: const Icon(Icons.logout_rounded, color: Colors.white), 
+              onPressed: () => _showLogoutDialog(),
+            ),
           ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(70),
@@ -104,7 +135,6 @@ class _DashboardScreenPerangkatState extends State<DashboardScreenPerangkat> wit
           ],
         ),
         
-        // FAB BULAT UNGU
         floatingActionButton: FloatingActionButton(
           backgroundColor: const Color(0xFF7B1FA2), 
           foregroundColor: Colors.white,
@@ -120,14 +150,12 @@ class _DashboardScreenPerangkatState extends State<DashboardScreenPerangkat> wit
     );
   }
 
-  // ✅ TAB BERITA DENGAN PULL-TO-REFRESH
   Widget _buildBeritaTab() {
     return FutureBuilder<List<BeritaModel>>(
       future: _beritaFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: Colors.cyanAccent));
         
-        // Handling jika kosong tetap bisa di-refresh
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return RefreshIndicator(
             onRefresh: _refreshData,
@@ -135,19 +163,18 @@ class _DashboardScreenPerangkatState extends State<DashboardScreenPerangkat> wit
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               children: [
-                 SizedBox(height: MediaQuery.of(context).size.height * 0.3),
-                 const Center(child: Text("Belum ada berita", style: TextStyle(color: Colors.white54))),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+                  const Center(child: Text("Belum ada berita", style: TextStyle(color: Colors.white54))),
               ],
             ),
           );
         }
 
-        // List Berita
         return RefreshIndicator(
           onRefresh: _refreshData,
           color: const Color(0xFF7B1FA2),
           child: ListView.separated(
-            physics: const AlwaysScrollableScrollPhysics(), // Agar bisa ditarik meski item sedikit
+            physics: const AlwaysScrollableScrollPhysics(), 
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 100), 
             itemCount: snapshot.data!.length, 
             separatorBuilder: (ctx, index) => const SizedBox(height: 15),
@@ -175,8 +202,9 @@ class _DashboardScreenPerangkatState extends State<DashboardScreenPerangkat> wit
                           onTapDown: (details) async {
                             final position = RelativeRect.fromLTRB(details.globalPosition.dx, details.globalPosition.dy, 0, 0);
                             await showMenu(context: context, position: position, color: const Color(0xFF2E004F), items: [const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, color: Colors.white, size: 18), SizedBox(width: 8), Text("Edit Isi", style: TextStyle(color: Colors.white))])), const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, color: Colors.redAccent, size: 18), SizedBox(width: 8), Text("Hapus Berita", style: TextStyle(color: Colors.redAccent))]))]).then((value) {
-                              if (value == 'edit') Navigator.push(context, MaterialPageRoute(builder: (_) => FormBeritaScreen(beritaToEdit: berita))).then((_) => _refreshData());
-                              else if (value == 'delete') _showDeleteConfirm(context, berita.id, true);
+                              if (value == 'edit') {
+                                Navigator.push(context, MaterialPageRoute(builder: (_) => FormBeritaScreen(beritaToEdit: berita))).then((_) => _refreshData());
+                              } else if (value == 'delete') _showDeleteConfirm(context, berita.id, true);
                             });
                           },
                           child: const Icon(Icons.more_vert, color: Colors.white54, size: 20),
@@ -194,14 +222,12 @@ class _DashboardScreenPerangkatState extends State<DashboardScreenPerangkat> wit
     );
   }
 
-  // ✅ TAB LAPORAN DENGAN PULL-TO-REFRESH
   Widget _buildLaporanTab() {
     return Consumer<LaporanProvider>(
       builder: (context, provider, child) {
-         if (provider.isLoading && provider.laporanList.isEmpty) return const Center(child: CircularProgressIndicator(color: Colors.cyanAccent));
-         
-         // Handling kosong tapi bisa refresh
-         if (provider.laporanList.isEmpty) {
+          if (provider.isLoading && provider.laporanList.isEmpty) return const Center(child: CircularProgressIndicator(color: Colors.cyanAccent));
+          
+          if (provider.laporanList.isEmpty) {
             return RefreshIndicator(
               onRefresh: _refreshData,
               color: const Color(0xFF7B1FA2),
@@ -213,38 +239,37 @@ class _DashboardScreenPerangkatState extends State<DashboardScreenPerangkat> wit
                 ],
               ),
             );
-         }
-         
-         // List Laporan
-         return RefreshIndicator(
-           onRefresh: _refreshData,
-           color: const Color(0xFF7B1FA2),
-           child: ListView.separated(
-             physics: const AlwaysScrollableScrollPhysics(),
-             padding: const EdgeInsets.fromLTRB(20, 10, 20, 100), itemCount: provider.laporanList.length, separatorBuilder: (ctx, index) => const SizedBox(height: 12),
-             itemBuilder: (ctx, index) {
-                 final lap = provider.laporanList[index];
-                 Color statusColor = Colors.orange;
-                 if(lap.status == 'selesai') statusColor = Colors.green;
-                 if(lap.status == 'tolak') statusColor = Colors.red;
-                 if(lap.status == 'diproses') statusColor = Colors.blue; 
+          }
+          
+          return RefreshIndicator(
+            onRefresh: _refreshData,
+            color: const Color(0xFF7B1FA2),
+            child: ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 100), itemCount: provider.laporanList.length, separatorBuilder: (ctx, index) => const SizedBox(height: 12),
+              itemBuilder: (ctx, index) {
+                  final lap = provider.laporanList[index];
+                  Color statusColor = Colors.orange;
+                  if(lap.status == 'selesai') statusColor = Colors.green;
+                  if(lap.status == 'tolak') statusColor = Colors.red;
+                  if(lap.status == 'diproses') statusColor = Colors.blue; 
 
-                 return GlassCard(
-                   opacity: 0.15, color: Colors.black, borderColor: statusColor.withOpacity(0.5), 
-                   onTap: () async {
-                     await Navigator.push(context, MaterialPageRoute(builder: (_) => DetailLaporanScreen(laporan: lap)));
-                     _refreshData(); 
-                   },
-                   child: Row(children: [
-                       Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: statusColor.withOpacity(0.15), shape: BoxShape.circle, border: Border.all(color: statusColor.withOpacity(0.3))), child: Icon(Icons.assignment_ind_rounded, color: statusColor, size: 24)),
-                       const SizedBox(width: 15),
-                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(lap.judul, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis), const SizedBox(height: 4), Text(lap.pelapor, style: const TextStyle(color: Colors.white54, fontSize: 12))])),
-                       Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: statusColor.withOpacity(0.5)), color: statusColor.withOpacity(0.1)), child: Text(lap.status.toUpperCase(), style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)))
-                   ]),
-                 );
+                  return GlassCard(
+                    opacity: 0.15, color: Colors.black, borderColor: statusColor.withOpacity(0.5), 
+                    onTap: () async {
+                      await Navigator.push(context, MaterialPageRoute(builder: (_) => DetailLaporanScreen(laporan: lap)));
+                      _refreshData(); 
+                    },
+                    child: Row(children: [
+                        Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: statusColor.withOpacity(0.15), shape: BoxShape.circle, border: Border.all(color: statusColor.withOpacity(0.3))), child: Icon(Icons.assignment_ind_rounded, color: statusColor, size: 24)),
+                        const SizedBox(width: 15),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(lap.judul, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis), const SizedBox(height: 4), Text(lap.pelapor, style: const TextStyle(color: Colors.white54, fontSize: 12))])),
+                        Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: statusColor.withOpacity(0.5)), color: statusColor.withOpacity(0.1)), child: Text(lap.status.toUpperCase(), style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)))
+                    ]),
+                  );
               },
-           ),
-         );
+            ),
+          );
       },
     );
   }
