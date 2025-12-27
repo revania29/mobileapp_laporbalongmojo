@@ -1,7 +1,6 @@
 const multer = require('multer');
 const path = require('path');
 
-// 1. Konfigurasi Penyimpanan (DiskStorage)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'public/uploads/');
@@ -12,7 +11,6 @@ const storage = multer.diskStorage({
   }
 });
 
-// 2. Filter Tipe File (Hanya gambar)
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png/;
   const mimeType = allowedTypes.test(file.mimetype);
@@ -24,7 +22,6 @@ const fileFilter = (req, file, cb) => {
   cb(new Error('Error: Hanya file gambar (jpeg, jpg, png, gif) yang diizinkan!'));
 };
 
-// 3. Inisialisasi Multer
 const upload = multer({
   storage: storage,
   limits: { fileSize: 2 * 1024 * 1024 }, 

@@ -3,7 +3,6 @@ const router = express.Router();
 const db = require('../config/database');
 const { verifyToken } = require('../middleware/auth');
 
-// ✅ Gunakan PUT karena sifatnya memperbarui (update) data yang sudah ada
 router.put('/update-fcm', verifyToken, async (req, res) => {
   try {
     const { fcm_token } = req.body; 

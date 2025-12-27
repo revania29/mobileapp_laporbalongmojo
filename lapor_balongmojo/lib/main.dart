@@ -5,15 +5,13 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 import 'package:lapor_balongmojo/firebase_options.dart';
 import 'package:intl/date_symbol_data_local.dart';
-
-// Import Providers
 import 'package:lapor_balongmojo/providers/auth_provider.dart';
 import 'package:lapor_balongmojo/providers/laporan_provider.dart';
-
-// Import Screens
 import 'package:lapor_balongmojo/screens/auth/login_screen.dart';
 import 'package:lapor_balongmojo/screens/auth/register_masyarakat_screen.dart';
 import 'package:lapor_balongmojo/screens/masyarakat/profile_screen.dart';
+import 'package:lapor_balongmojo/screens/masyarakat/home_screen_masyarakat.dart';
+import 'package:lapor_balongmojo/screens/perangkat/dashboard_screen_perangkat.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -40,15 +38,12 @@ void main() async {
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // Setup Notifikasi Lokal
   const AndroidInitializationSettings initializationSettingsAndroid =
       AndroidInitializationSettings('@mipmap/ic_launcher');
 
   await flutterLocalNotificationsPlugin.initialize(
     const InitializationSettings(android: initializationSettingsAndroid),
-    onDidReceiveNotificationResponse: (NotificationResponse response) {
-      // Logika ketika notifikasi diklik
-    },
+    onDidReceiveNotificationResponse: (NotificationResponse response) {},
   );
 
   await flutterLocalNotificationsPlugin
@@ -83,11 +78,8 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    
-    // Minta Izin Notifikasi
-    FirebaseMessaging.instance.requestPermission();
 
-    // Listen Notifikasi saat aplikasi Terbuka (Foreground)
+    FirebaseMessaging.instance.requestPermission();
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       RemoteNotification? notification = message.notification;
       AndroidNotification? android = message.notification?.android;
@@ -125,12 +117,25 @@ class _MyAppState extends State<MyApp> {
         fontFamily: 'Poppins',
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF7C4DFF)),
       ),
-      // Gunakan initialRoute dan routes agar navigasi antar halaman lancar
-      initialRoute: '/',
+      home: Consumer<AuthProvider>(
+        builder: (context, auth, _) {
+          if (auth.status == AuthStatus.uninitialized) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+          if (auth.isLoggedIn) {
+            return auth.userRole == 'perangkat' || auth.userRole == 'admin'
+                ? const DashboardScreenPerangkat()
+                : const HomeScreenMasyarakat();
+          }
+          return const LoginScreen();
+        },
+      ),
       routes: {
-        '/': (context) => const LoginScreen(),
         RegisterMasyarakatScreen.routeName: (context) => const RegisterMasyarakatScreen(),
-        '/profile': (context) => const ProfileScreen(), // Route profile Anda
+        '/profile': (context) => const ProfileScreen(),
+        '/login': (context) => const LoginScreen(),
       },
     );
   }

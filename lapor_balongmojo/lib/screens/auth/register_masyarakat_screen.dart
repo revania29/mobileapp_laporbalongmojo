@@ -21,6 +21,15 @@ class _RegisterMasyarakatScreenState extends State<RegisterMasyarakatScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
 
+  @override
+  void dispose() {
+    _namaController.dispose();
+    _emailController.dispose();
+    _noTelpController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   Future<void> _submitRegister() async {
     if (!_formKey.currentState!.validate()) return;
     
@@ -29,30 +38,53 @@ class _RegisterMasyarakatScreenState extends State<RegisterMasyarakatScreen> {
     try {
       await Provider.of<AuthProvider>(context, listen: false)
           .registerMasyarakat(
-        _namaController.text,
-        _emailController.text,
-        _noTelpController.text,
-        _passwordController.text,
+        _namaController.text.trim(),
+        _emailController.text.trim(),
+        _noTelpController.text.trim(),
+        _passwordController.text.trim(),
       );
       
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Registrasi berhasil! Silakan tunggu verifikasi perangkat desa.'))
+        const SnackBar(
+          content: Text('Registrasi berhasil! Silakan tunggu verifikasi perangkat desa.'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        )
       );
       Navigator.of(context).pop();
 
     } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
-    }
+      if (mounted) {
+        // ✅ Membersihkan pesan error agar tidak muncul tulisan "Exception: "
+        String errorMessage = error.toString()
+            .replaceAll('Exception: ', '')
+            .replaceAll('Exception:', '')
+            .trim();
 
-    setState(() { _isLoading = false; });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() { _isLoading = false; });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Daftar Akun Masyarakat')),
+      appBar: AppBar(
+        title: const Text('Daftar Akun Masyarakat'),
+        centerTitle: true,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Form(
@@ -65,26 +97,39 @@ class _RegisterMasyarakatScreenState extends State<RegisterMasyarakatScreen> {
                 icon: Icons.person,
                 validator: (val) => val!.isEmpty ? 'Wajib diisi' : null,
               ),
+              const SizedBox(height: 16),
               CustomTextField(
                 controller: _emailController,
                 labelText: 'Email',
                 icon: Icons.email,
-                validator: (val) => val!.isEmpty ? 'Wajib diisi' : null,
+                keyboardType: TextInputType.emailAddress,
+                validator: (val) {
+                  if (val == null || val.isEmpty) return 'Wajib diisi';
+                  if (!val.contains('@')) return 'Masukkan email yang valid';
+                  return null;
+                },
               ),
+              const SizedBox(height: 16),
               CustomTextField(
                 controller: _noTelpController,
                 labelText: 'No. Telepon',
                 icon: Icons.phone,
+                keyboardType: TextInputType.phone,
                 validator: (val) => val!.isEmpty ? 'Wajib diisi' : null,
               ),
+              const SizedBox(height: 16),
               CustomTextField(
                 controller: _passwordController,
                 labelText: 'Password',
                 icon: Icons.lock,
                 isObscure: true,
-                validator: (val) => val!.isEmpty ? 'Wajib diisi' : null,
+                validator: (val) {
+                  if (val == null || val.isEmpty) return 'Wajib diisi';
+                  if (val.length < 6) return 'Password minimal 6 karakter';
+                  return null;
+                },
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
               PrimaryButton(
                 text: 'DAFTAR',
                 onPressed: _submitRegister,

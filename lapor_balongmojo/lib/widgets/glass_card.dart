@@ -16,7 +16,7 @@ class GlassCard extends StatelessWidget {
     required this.child,
     this.opacity = 0.15, 
     this.blur = 20.0,
-    this.color = Colors.black, // Default hitam agar teks putih lebih jelas
+    this.color = Colors.black, 
     this.padding,
     this.margin,
     this.onTap,
@@ -31,7 +31,7 @@ class GlassCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2), // Shadow lebih gelap untuk kedalaman
+            color: Colors.black.withOpacity(0.2), 
             blurRadius: 25,
             spreadRadius: -5,
             offset: const Offset(0, 10),
@@ -53,7 +53,6 @@ class GlassCard extends StatelessWidget {
                 color: color.withOpacity(opacity),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  // Border putih sangat tipis untuk kesan "Mahal"
                   color: borderColor ?? Colors.white.withOpacity(0.15), 
                   width: 1.0,
                 ),

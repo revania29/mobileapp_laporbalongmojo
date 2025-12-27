@@ -18,10 +18,8 @@ class BeritaModel {
   });
 
   factory BeritaModel.fromJson(Map<String, dynamic> json) {
-    // LOGIKA PERBAIKAN: Sesuaikan KEY dengan DATABASE (is_peringatan_darurat)
     bool checkEmergency = false;
-    
-    // Cek kolom 'is_peringatan_darurat' (Sesuai screenshot database Anda)
+
     if (json['is_peringatan_darurat'] != null) {
       var val = json['is_peringatan_darurat'];
       if (val is int) {
@@ -37,12 +35,12 @@ class BeritaModel {
       id: json['id'] ?? 0,
       judul: json['judul'] ?? '',
       isi: json['isi'] ?? '',
-      gambarUrl: json['gambar_url'], 
+      gambarUrl: json['gambar_url'],
       authorName: json['author_name'] ?? 'Admin',
-      createdAt: json['created_at'] != null 
-          ? DateTime.parse(json['created_at']) 
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at']).add(const Duration(hours: 7))
           : DateTime.now(),
-      isPeringatanDarurat: checkEmergency, 
+      isPeringatanDarurat: checkEmergency,
     );
   }
 }

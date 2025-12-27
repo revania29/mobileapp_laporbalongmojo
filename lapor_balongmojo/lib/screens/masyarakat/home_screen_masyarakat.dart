@@ -36,6 +36,43 @@ class _HomeScreenMasyarakatState extends State<HomeScreenMasyarakat> {
     Future.microtask(() => Provider.of<LaporanProvider>(context, listen: false).fetchLaporan());
   }
 
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF2E004F),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          "Keluar Akun",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          "Apakah Anda yakin ingin keluar dari aplikasi?",
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Batal", style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await Provider.of<AuthProvider>(context, listen: false).logout();
+              if (mounted) {
+                Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+              }
+            },
+            child: const Text(
+              "Keluar",
+              style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -67,10 +104,12 @@ class _HomeScreenMasyarakatState extends State<HomeScreenMasyarakat> {
                 child: PopupMenuButton<String>(
                   offset: const Offset(0, 50),
                   icon: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), shape: BoxShape.circle, border: Border.all(color: Colors.white30, width: 1.5)), child: const Icon(Icons.person_rounded, color: Colors.white, size: 24)),
-                  onSelected: (value) {
+                  onSelected: (value) async {
                     if (value == 'profile') {
                       Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
-                    } else if (value == 'logout') { Provider.of<AuthProvider>(context, listen: false).logout(); Navigator.of(context).pushReplacementNamed('/login'); }
+                    } else if (value == 'logout') { 
+                      _showLogoutDialog();
+                    }
                   },
                   itemBuilder: (context) => [
                     const PopupMenuItem(value: 'profile', child: Row(children: [Icon(Icons.edit_rounded, color: Color(0xFF2E004F)), SizedBox(width: 12), Text("Edit Profil")])),
@@ -83,8 +122,6 @@ class _HomeScreenMasyarakatState extends State<HomeScreenMasyarakat> {
         ),
         
         body: _widgetOptions.elementAt(_selectedIndex),
-        
-        // ✅ TOMBOL BUAT LAPORAN (FAB UNGU GRADASI)
         floatingActionButton: Container(
           height: 60, width: 60,
           decoration: BoxDecoration(
@@ -92,12 +129,11 @@ class _HomeScreenMasyarakatState extends State<HomeScreenMasyarakat> {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              // GANTI WARNA BIRU JADI UNGU
               colors: [Color(0xFFAB47BC), Color(0xFF7B1FA2)], 
             ), 
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF7B1FA2).withOpacity(0.5), // Glow Ungu
+                color: const Color(0xFF7B1FA2).withOpacity(0.5),
                 blurRadius: 15, 
                 offset: const Offset(0, 5)
               )
@@ -197,9 +233,7 @@ class _BeritaCardItemState extends State<_BeritaCardItem> {
 
   @override
   Widget build(BuildContext context) {
-    // --- CEK APAKAH BERITA INI DARURAT ---
     final bool isDarurat = widget.berita.isPeringatanDarurat;
-    
     final bool hasImage = widget.berita.gambarUrl != null && widget.berita.gambarUrl!.isNotEmpty;
     final bool isActive = _isHovering || _isPressed;
 
@@ -222,18 +256,16 @@ class _BeritaCardItemState extends State<_BeritaCardItem> {
           duration: const Duration(milliseconds: 150),
           curve: Curves.easeOutBack,
           transform: Matrix4.identity()..scale(isActive ? 1.02 : 1.0),
-          
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
-            // --- WARNA GRADIENT: MERAH JIKA DARURAT ---
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: isDarurat 
-                  ? [const Color(0xFFB71C1C).withOpacity(0.9), const Color(0xFFC62828).withOpacity(0.7)] // Merah Darah
+                  ? [const Color(0xFFB71C1C).withOpacity(0.9), const Color(0xFFC62828).withOpacity(0.7)]
                   : (isActive 
                       ? [Colors.white.withOpacity(0.2), Colors.white.withOpacity(0.05)] 
-                      : [Colors.white.withOpacity(0.12), Colors.white.withOpacity(0.02)]), // Biasa
+                      : [Colors.white.withOpacity(0.12), Colors.white.withOpacity(0.02)]),
             ),
             border: Border.all(
               color: isDarurat 
@@ -244,7 +276,7 @@ class _BeritaCardItemState extends State<_BeritaCardItem> {
             boxShadow: [
               BoxShadow(
                 color: isDarurat 
-                    ? Colors.red.withOpacity(0.5) // Glow Merah
+                    ? Colors.red.withOpacity(0.5)
                     : (isActive ? Colors.cyan.withOpacity(0.2) : Colors.black.withOpacity(0.3)),
                 blurRadius: isActive ? 25 : 15,
                 offset: const Offset(0, 10),
@@ -260,14 +292,13 @@ class _BeritaCardItemState extends State<_BeritaCardItem> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // --- LABEL PERINGATAN DARURAT ---
                     if (isDarurat)
                       Container(
                         width: double.infinity,
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFD50000), // Merah terang solid
+                          color: const Color(0xFFD50000),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: Colors.white, width: 1),
                           boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 5)],
@@ -284,20 +315,16 @@ class _BeritaCardItemState extends State<_BeritaCardItem> {
                           ],
                         ),
                       ),
-
                     if (hasImage)
                       Container(
                         margin: const EdgeInsets.only(bottom: 16),
                         height: 180, width: double.infinity,
                         decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), image: DecorationImage(image: NetworkImage('${ApiService.publicBaseUrl}${widget.berita.gambarUrl!}'), fit: BoxFit.cover)),
                       ),
-                    
                     Text(widget.berita.judul, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Colors.white, height: 1.2)),
                     const SizedBox(height: 8),
                     Text(widget.berita.isi.length > 100 ? '${widget.berita.isi.substring(0, 100)}...' : widget.berita.isi, style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 14, height: 1.5)),
-                    
                     const SizedBox(height: 16),
-                    
                     Row(
                       children: [
                         CircleAvatar(radius: 12, backgroundColor: Colors.white24, child: const Icon(Icons.person, size: 14, color: Colors.white)),

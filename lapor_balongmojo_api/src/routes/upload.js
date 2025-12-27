@@ -11,7 +11,6 @@ router.post('/', [verifyToken, upload.single('image')], (req, res) => {
 
     const imageUrl = `/uploads/${req.file.filename}`;
     
-    // Kembalikan URL ke client (Flutter)
     res.status(201).json({ 
       message: 'File berhasil di-upload', 
       imageUrl: imageUrl 

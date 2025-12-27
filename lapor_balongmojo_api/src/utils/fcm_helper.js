@@ -1,13 +1,10 @@
 const admin = require('firebase-admin');
 
-// ============================================================
-// LOGIKA 1: ADMIN KIRIM BERITA DARURAT -> KE SEMUA MASYARAKAT
-// ============================================================
 async function kirimNotifikasiDarurat(judulBerita, isiBerita) {
   try {
     const message = {
       notification: {
-        title: `🚨 PERINGATAN DARURAT`, // Judul mencolok
+        title: '🚨 DARURAT 🚨', 
         body: judulBerita,
       },
       android: {
@@ -17,39 +14,35 @@ async function kirimNotifikasiDarurat(judulBerita, isiBerita) {
           priority: 'max',
           defaultSound: true,
           visibility: 'public',
+          color: '#f44336' 
         }
       },
       data: {
         screen: 'BeritaDetail',
         click_action: 'FLUTTER_NOTIFICATION_CLICK',
-        refresh: 'true' // Agar UI Berita refresh otomatis
+        refresh: 'true' 
       },
-      // ✅ PENTING: Kirim ke TOPIK (Broadcast), bukan token individu
       topic: 'emergency_alerts', 
     };
 
     await admin.messaging().send(message);
-    console.log('✅ Notifikasi DARURAT terkirim ke topik: emergency_alerts');
+    console.log('✅ Notifikasi DARURAT terkirim dengan judul 🚨 DARURAT 🚨');
   } catch (error) {
     console.error('❌ Gagal mengirim notifikasi darurat:', error);
   }
 }
 
-// ============================================================
-// LOGIKA 2: MASYARAKAT LAPOR -> KE ADMIN (PERANGKAT)
-// ============================================================
 async function kirimNotifikasiLaporanBaru(judulLaporan, namaPelapor, listTokenDevice) {
-  // Cek validasi
   if (!listTokenDevice || listTokenDevice.length === 0) {
-    console.log('⚠️ Tidak ada token perangkat desa (Admin belum login). Notifikasi skip.');
+    console.log('⚠️ Tidak ada token perangkat desa. Notifikasi skip.');
     return;
   }
 
   try {
     const message = {
       notification: {
-        title: '📢 Laporan Warga Baru',
-        body: `${namaPelapor}: ${judulLaporan}`,
+        title: '📢 Laporan Warga',
+        body: judulLaporan, 
       },
       android: {
         priority: 'high',
@@ -60,16 +53,15 @@ async function kirimNotifikasiLaporanBaru(judulLaporan, namaPelapor, listTokenDe
         }
       },
       data: {
-        screen: 'LaporanPerangkat', 
-        refresh: 'true', // Sinyal ke Flutter untuk auto-refresh List Laporan
+        refresh: 'true',
         click_action: 'FLUTTER_NOTIFICATION_CLICK'
       },
-      // ✅ PENTING: Kirim ke TOKEN HP Admin yang sedang login
+
       tokens: listTokenDevice 
     };
 
     const response = await admin.messaging().sendEachForMulticast(message);
-    console.log(`✅ Notifikasi LAPORAN terkirim: ${response.successCount} sukses, ${response.failureCount} gagal.`);
+    console.log(`✅ Notifikasi LAPORAN terkirim: ${response.successCount} sukses.`);
   } catch (error) {
     console.error('❌ Gagal mengirim notifikasi laporan:', error);
   }
