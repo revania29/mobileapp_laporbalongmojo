@@ -68,10 +68,11 @@ npm install
 # 5. Jalankan Server
 npm start
 # (Server berjalan di port: 3000)
+```
+### 2. Frontend (Mobile App)
+Pastikan sudah install: Flutter SDK (Terbaru) & Android Studio (Emulator)
 
-# --- PRASYARAT ---
-# Pastikan sudah install: Flutter SDK (Terbaru) & Android Studio (Emulator)
-
+```bash
 # 1. Kembali ke root folder dan masuk ke folder flutter
 cd lapor_balongmojo
 
@@ -86,6 +87,7 @@ flutter pub get
 # 4. Jalankan Aplikasi
 # (Pastikan Emulator sudah menyala atau HP terhubung)
 flutter run
+```
 
 =========================================
       TIM PENGEMBANG (DEV TEAM)
