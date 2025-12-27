@@ -89,9 +89,7 @@ flutter pub get
 flutter run
 ```
 
-=========================================
-      TIM PENGEMBANG (DEV TEAM)
-=========================================
+
 
 1. Alvyn Wira Pratama (DEV)
 2. Kifansa Naufal Fadhlurrohman (DEV)
